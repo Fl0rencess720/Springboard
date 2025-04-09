@@ -1,6 +1,6 @@
 module github.com/Fl0rencess720/Springbroad
 
-go 1.24.1
+go 1.23.5
 
 require (
 	github.com/gin-contrib/zap v1.1.5
