@@ -3,11 +3,7 @@ server:
 project:
   mode: dev
 data:
-  mysql:
-    source: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_ADDR)/springbroad?parseTime=True&loc=Local
   redis:
-    addr: ${REDIS_ADDR}
-    password: ${REDIS_PASSWORD}
     db: 0
     read_timeout: 0.2s
     write_timeout: 0.2s

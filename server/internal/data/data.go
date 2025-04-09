@@ -1,6 +1,8 @@
 package data
 
 import (
+	"fmt"
+
 	"github.com/go-redis/redis/extra/redisotel"
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
@@ -19,7 +21,7 @@ func Init() {
 }
 
 func mysqlInit() {
-	mysqlDB, err := gorm.Open(mysql.Open(viper.GetString("data.mysql.source")), &gorm.Config{
+	mysqlDB, err := gorm.Open(mysql.Open(fmt.Sprintf("%s:%s@tcp(%s)/springbroad?parseTime=True&loc=Local", viper.GetString("MYSQL_USER"), viper.GetString("MYSQL_PASSWORD"), viper.GetString("MYSQL_ADDR"))), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
@@ -30,8 +32,8 @@ func mysqlInit() {
 
 func redisInit() {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:         viper.GetString("data.redis.addr"),
-		Password:     viper.GetString("data.redis.password"),
+		Addr:         viper.GetString("REDIS_ADDR"),
+		Password:     viper.GetString("REDIS_PASSWORD"),
 		DB:           viper.GetInt("data.redis.db"),
 		DialTimeout:  viper.GetDuration("data.redis.dial_timeout"),
 		WriteTimeout: viper.GetDuration("data.redis.write_timeout"),
