@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"github.com/thedevsaddam/gojsonq"
-	"go.uber.org/zap"
 )
 
 func Login(c *gin.Context) {
@@ -19,35 +19,27 @@ func Login(c *gin.Context) {
 	url = fmt.Sprintf(url, viper.GetString("APP_ID"), viper.GetString("APP_SECRET"), code)
 	resp, err := http.Get(url)
 	if err != nil {
-		zap.L().Error("get wechat openid error", zap.Error(err))
-		c.JSON(401, gin.H{
-			"code":    401,
-			"message": "login failed",
-		})
+		ErrorResponse(c, LoginError, err)
 		return
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		zap.L().Error("read wechat openid error", zap.Error(err))
-		c.JSON(401, gin.H{
-			"code":    401,
-			"message": "login failed",
-		})
+		ErrorResponse(c, LoginError, err)
 		return
 	}
 	json := gojsonq.New().FromString(string(body)).Find("openid")
+	if json == nil {
+		ErrorResponse(c, LoginError, errors.New("openid not found"))
+		return
+	}
 	openId := json.(string)
 	accessToken, refreshToken, err := middleware.GenToken(openId)
 	if err != nil {
-		zap.L().Error("gen token error", zap.Error(err))
-		c.JSON(401, gin.H{
-			"code":    401,
-			"message": "login failed",
-		})
+		ErrorResponse(c, LoginError, err)
 		return
 	}
-	c.JSON(200, gin.H{
+	SuccessResponse(c, gin.H{
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	})
@@ -57,30 +49,20 @@ func RefreshAccessToken(c *gin.Context) {
 	refreshToken := c.Query("refresh_token")
 	tokenString := c.GetHeader("Authorization")
 	if tokenString == "" {
-		c.JSON(401, gin.H{
-			"code":    401,
-			"message": "miss token string",
-		})
+		ErrorResponse(c, RefreshTokenError, errors.New("miss token string"))
 		return
 	}
 	parts := strings.Split(tokenString, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(401, gin.H{
-			"code":    401,
-			"message": "wrong token format",
-		})
+		ErrorResponse(c, RefreshTokenError, errors.New("wrong token format"))
 		return
 	}
 	accessToken, err := middleware.RefreshToken(parts[1], refreshToken)
 	if err != nil {
-		zap.L().Error("refresh token error", zap.Error(err))
-		c.JSON(401, gin.H{
-			"code":    401,
-			"message": "refresh token error",
-		})
+		ErrorResponse(c, RefreshTokenError, err)
 		return
 	}
-	c.JSON(200, gin.H{
+	SuccessResponse(c, gin.H{
 		"access_token": accessToken,
 	})
 }
