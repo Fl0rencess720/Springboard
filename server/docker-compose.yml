@@ -1,0 +1,27 @@
+  services:
+    springbroad_be:
+      build: .
+      container_name: springbroad_be
+      restart: always
+      ports:
+        - "8000:8000"
+      env_file:
+        - .env
+      environment:
+        - TZ=Asia/Shanghai
+      volumes:
+        - ./zap.log:/app/zap.log
+        - ./configs/config.yaml:/app/configs/config.yaml
+      networks:
+        - app_network
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      logging:
+        driver: "json-file"
+        options:
+          max-size: "10m"
+          max-file: "3"
+
+  networks:
+    app_network:
+      driver: bridge
