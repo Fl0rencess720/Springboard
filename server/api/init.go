@@ -14,10 +14,10 @@ import (
 func Init() *gin.Engine {
 	e := gin.New()
 	e.Use(gin.Logger(), gin.Recovery(), ginZap.Ginzap(zap.L(), time.RFC3339, false), ginZap.RecoveryWithZap(zap.L(), false))
-	basic := e.Group("/api")
+	auth := e.Group("/api")
 	{
-		basic.POST("/login", controller.Login)
-		basic.GET("/refresh", controller.RefreshAccessToken)
+		auth.POST("/login", controller.Login)
+		auth.GET("/refresh", controller.RefreshAccessToken)
 	}
 	app := e.Group("/api", middleware.Auth())
 	{
