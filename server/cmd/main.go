@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Fl0rencess720/Springbroad/internal/conf"
+	"github.com/Fl0rencess720/Springbroad/internal/controller"
 	"github.com/Fl0rencess720/Springbroad/internal/data"
 
 	"github.com/Fl0rencess720/Springbroad/api"
@@ -18,11 +19,14 @@ import (
 	"go.uber.org/zap"
 )
 
+func init() {
+	conf.Init()
+	logger.Init(consts.DefaultLogFilePath)
+	data.Init()
+}
+
 func main() {
-	srv := &http.Server{
-		Addr:    viper.GetString("server.port"),
-		Handler: api.Init(),
-	}
+	srv := newSrv()
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			zap.L().Error("Server ListenAndServe", zap.Error(err))
@@ -32,10 +36,15 @@ func main() {
 	closeServer(srv, context.Background())
 }
 
-func init() {
-	conf.Init()
-	logger.Init(consts.DefaultLogFilePath)
-	data.Init()
+func newSrv() *http.Server {
+	authRepo := data.NewAuthRepo()
+	portfolioRepo := data.NewPortfolioRepo(data.GetDB(), data.GetRedis())
+	authUsecase := controller.NewAuthUsecase(authRepo)
+	portfolioUsecase := controller.NewPortfolioUsecase(portfolioRepo)
+	return &http.Server{
+		Addr:    viper.GetString("server.port"),
+		Handler: api.Init(authUsecase, portfolioUsecase),
+	}
 }
 
 func closeServer(srv *http.Server, ctx context.Context) {
