@@ -13,7 +13,18 @@ import (
 	"github.com/thedevsaddam/gojsonq"
 )
 
-func Login(c *gin.Context) {
+type AuthRepo interface {
+}
+
+type AuthUsecase struct {
+	repo AuthRepo
+}
+
+func NewAuthUsecase(repo AuthRepo) *AuthUsecase {
+	return &AuthUsecase{repo: repo}
+}
+
+func (s *AuthUsecase) Login(c *gin.Context) {
 	code := c.Query("code")
 	url := "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code "
 	url = fmt.Sprintf(url, viper.GetString("APP_ID"), viper.GetString("APP_SECRET"), code)
@@ -45,7 +56,7 @@ func Login(c *gin.Context) {
 	})
 }
 
-func RefreshAccessToken(c *gin.Context) {
+func (s *AuthUsecase) RefreshAccessToken(c *gin.Context) {
 	refreshToken := c.Query("refresh_token")
 	tokenString := c.GetHeader("Authorization")
 	if tokenString == "" {

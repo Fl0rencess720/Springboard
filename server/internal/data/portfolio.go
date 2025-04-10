@@ -3,6 +3,7 @@ package data
 import (
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 )
 
@@ -29,4 +30,35 @@ type Template struct {
 	OSSKey     string      `gorm:"type:varchar(255)"`
 	Portfolios []Portfolio `gorm:"foreignKey:TemplateUID"`
 	CreatedAt  time.Time
+}
+
+type PortfolioRepo struct {
+	mysqlDB     *gorm.DB
+	redisClient *redis.Client
+}
+
+func NewPortfolioRepo(mysqlDB *gorm.DB, redisClient *redis.Client) PortfolioRepo {
+	return PortfolioRepo{
+		mysqlDB:     mysqlDB,
+		redisClient: redisClient,
+	}
+}
+
+func (r PortfolioRepo) GetAllTemplatesFromDB() []Template {
+	return nil
+}
+func (r PortfolioRepo) GetAllTemplatesFromRedis() []Template {
+	return nil
+}
+func (r PortfolioRepo) GetHotTemplatesFromDB() []Template {
+	return nil
+}
+func (r PortfolioRepo) GetHotTemplatesFromRedis() []Template {
+	return nil
+}
+func (r PortfolioRepo) GetPortfolioFromDB(openid string) []Portfolio {
+	return nil
+}
+func (r PortfolioRepo) GetPortfolioFromRedis(openid string) []Portfolio {
+	return nil
 }
