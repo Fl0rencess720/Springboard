@@ -1,6 +1,8 @@
 package data
 
 import (
+	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -44,21 +46,46 @@ func NewPortfolioRepo(mysqlDB *gorm.DB, redisClient *redis.Client) PortfolioRepo
 	}
 }
 
-func (r PortfolioRepo) GetAllTemplatesFromDB() []Template {
+func (r PortfolioRepo) GetAllTemplatesFromDB(ctx context.Context) ([]Template, error) {
+	templates := []Template{}
+	if err := r.mysqlDB.Find(&templates).Error; err != nil {
+		return nil, err
+	}
+	return templates, nil
+}
+func (r PortfolioRepo) GetAllTemplatesFromRedis(ctx context.Context) ([]Template, error) {
+	result := r.redisClient.Get(ctx, "templates")
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+	var templates []Template
+	if err := result.Scan(&templates); err != nil {
+		return nil, err
+	}
+	return templates, nil
+
+}
+
+func (r PortfolioRepo) SaveAllTemplatesToRedis(ctx context.Context, templates []Template) error {
+	templatesJson, err := json.Marshal(templates)
+	if err != nil {
+		return err
+	}
+	if err := r.redisClient.Set(ctx, "templates", templatesJson, 0).Err(); err != nil {
+		return err
+	}
 	return nil
 }
-func (r PortfolioRepo) GetAllTemplatesFromRedis() []Template {
-	return nil
+
+func (r PortfolioRepo) GetHotTemplatesFromDB(ctx context.Context) ([]Template, error) {
+	return nil, nil
 }
-func (r PortfolioRepo) GetHotTemplatesFromDB() []Template {
-	return nil
+func (r PortfolioRepo) GetHotTemplatesFromRedis(ctx context.Context) ([]Template, error) {
+	return nil, nil
 }
-func (r PortfolioRepo) GetHotTemplatesFromRedis() []Template {
-	return nil
+func (r PortfolioRepo) GetPortfolioFromDB(ctx context.Context, openid string) ([]Portfolio, error) {
+	return nil, nil
 }
-func (r PortfolioRepo) GetPortfolioFromDB(openid string) []Portfolio {
-	return nil
-}
-func (r PortfolioRepo) GetPortfolioFromRedis(openid string) []Portfolio {
-	return nil
+func (r PortfolioRepo) GetPortfolioFromRedis(ctx context.Context, openid string) ([]Portfolio, error) {
+	return nil, nil
 }
