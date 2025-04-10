@@ -1,12 +1,12 @@
 package api
 
 import (
+	"Springbroad/server/internal/middleware"
 	"time"
 
 	"github.com/Fl0rencess720/Springbroad/api/portfolio"
 	"github.com/Fl0rencess720/Springbroad/api/user"
 	"github.com/Fl0rencess720/Springbroad/internal/controller"
-	"github.com/Fl0rencess720/Springbroad/internal/middleware"
 	ginZap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -25,6 +25,7 @@ func Init(au *controller.AuthUsecase, pu *controller.PortfolioUsecase) *gin.Engi
 	{
 		user.InitAPI(app.Group("/user"))
 		portfolio.InitAPI(app.Group("/portfolio"), pu)
+
 	}
 	return e
 }

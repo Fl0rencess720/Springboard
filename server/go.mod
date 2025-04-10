@@ -12,7 +12,9 @@ require (
 	github.com/go-redis/redis/extra/redisotel v0.3.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/google/uuid v1.6.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
+	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.20.1
 	github.com/thedevsaddam/gojsonq v2.3.0+incompatible
 	go.uber.org/zap v1.27.0
