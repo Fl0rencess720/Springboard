@@ -1,8 +1,9 @@
 package api
 
 import (
-	"Springbroad/server/internal/middleware"
 	"time"
+
+	"github.com/Fl0rencess720/Springbroad/internal/middleware"
 
 	"github.com/Fl0rencess720/Springbroad/api/portfolio"
 	"github.com/Fl0rencess720/Springbroad/api/user"
