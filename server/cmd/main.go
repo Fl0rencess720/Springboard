@@ -39,11 +39,13 @@ func main() {
 func newSrv() *http.Server {
 	authRepo := data.NewAuthRepo()
 	portfolioRepo := data.NewPortfolioRepo(data.GetDB(), data.GetRedis())
+	feedbackRepo := data.NewFeedbackRepo(data.GetDB())
 	authUsecase := controller.NewAuthUsecase(authRepo)
 	portfolioUsecase := controller.NewPortfolioUsecase(portfolioRepo)
+	feedbackUsecase := controller.NewFeedbackUseCase(feedbackRepo)
 	return &http.Server{
 		Addr:    viper.GetString("server.port"),
-		Handler: api.Init(authUsecase, portfolioUsecase),
+		Handler: api.Init(authUsecase, portfolioUsecase, feedbackUsecase),
 	}
 }
 

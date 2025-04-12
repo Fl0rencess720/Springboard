@@ -5,6 +5,7 @@ import (
 
 	"github.com/Fl0rencess720/Springbroad/internal/middleware"
 
+	"github.com/Fl0rencess720/Springbroad/api/feedback"
 	"github.com/Fl0rencess720/Springbroad/api/portfolio"
 	"github.com/Fl0rencess720/Springbroad/api/user"
 	"github.com/Fl0rencess720/Springbroad/internal/controller"
@@ -13,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Init(au *controller.AuthUsecase, pu *controller.PortfolioUsecase) *gin.Engine {
+func Init(au *controller.AuthUsecase, pu *controller.PortfolioUsecase, sc *controller.FeedbackUseCase) *gin.Engine {
 	e := gin.New()
 	e.Use(gin.Logger(), gin.Recovery(), ginZap.Ginzap(zap.L(), time.RFC3339, false), ginZap.RecoveryWithZap(zap.L(), false))
 	auth := e.Group("/api")
@@ -26,7 +27,8 @@ func Init(au *controller.AuthUsecase, pu *controller.PortfolioUsecase) *gin.Engi
 	{
 		user.InitAPI(app.Group("/user"))
 		portfolio.InitAPI(app.Group("/portfolio"), pu)
-
+		feedback.InitAPI(app.Group("/feedback"), sc)
 	}
+
 	return e
 }
