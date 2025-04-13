@@ -14,25 +14,25 @@ type Portfolio struct {
 	UID         string   `gorm:"primaryKey;type:varchar(255)"`
 	Openid      string   `gorm:"index;type:varchar(255)"`
 	Title       string   `gorm:"type:varchar(255)"`
-	Works       []Work   `gorm:"foreignKey:PortfolioUID"`
+	Works       []Work   `gorm:"foreignKey:PortfolioUID;references:UID"`
 	TemplateUID string   `gorm:"index;type:varchar(255)" json:"template_uid"`
-	Template    Template `gorm:"foreignKey:TemplateUID;references:UID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Template    Template `gorm:"foreignKey:TemplateUID;references:UID"`
 	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type Work struct {
-	gorm.Model
-	OSSKey       string    `gorm:"type:varchar(255)"`
-	PortfolioUID string    `gorm:"index;type:varchar(255)" json:"portfolio_uid"`
-	Portfolio    Portfolio `gorm:"foreignKey:PortfolioUID;references:UID"`
+	OSSKey       string `gorm:"primaryKey;type:varchar(255)"`
+	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type Template struct {
-	UID        string      `gorm:"primaryKey;type:varchar(255)"`
-	Name       string      `gorm:"type:varchar(255)"`
-	OSSKey     string      `gorm:"type:varchar(255)"`
-	Portfolios []Portfolio `gorm:"foreignKey:TemplateUID"`
-	CreatedAt  time.Time
+	UID       string `gorm:"primaryKey;type:varchar(255)"`
+	Name      string `gorm:"type:varchar(255)"`
+	OSSKey    string `gorm:"type:varchar(255)"`
+	CreatedAt time.Time
 }
 
 type PortfolioRepo struct {
@@ -114,7 +114,7 @@ func (r PortfolioRepo) GetPortfolioFromRedis(ctx context.Context, openid string)
 	return nil, nil
 }
 
-func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfolio, works []Work) error {
+func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfolio, works []Work, openid string) error {
 	err := r.mysqlDB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "uid"}},
@@ -122,7 +122,10 @@ func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfoli
 		}).Create(&portfolio).Error; err != nil {
 			return err
 		}
-		if err := tx.Create(&works).Error; err != nil {
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "oss_key"}},
+			UpdateAll: true,
+		}).Create(&works).Error; err != nil {
 			return err
 		}
 		return nil
