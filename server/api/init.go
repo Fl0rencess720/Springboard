@@ -3,12 +3,11 @@ package api
 import (
 	"time"
 
-	"github.com/Fl0rencess720/Springbroad/internal/middleware"
-
 	"github.com/Fl0rencess720/Springbroad/api/feedback"
 	"github.com/Fl0rencess720/Springbroad/api/portfolio"
 	"github.com/Fl0rencess720/Springbroad/api/user"
 	"github.com/Fl0rencess720/Springbroad/internal/controller"
+	"github.com/Fl0rencess720/Springbroad/internal/middleware"
 	ginZap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

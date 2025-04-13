@@ -10,8 +10,16 @@ import (
 )
 
 type SavePortfolioRequest struct {
-	Portfolio data.Portfolio `json:"portfolio"`
-	Works     []data.Work    `json:"works"`
+	UID         string      `json:"uid"`
+	Title       string      `json:"title"`
+	TemplateUID string      `json:"template_uid"`
+	Works       []data.Work `json:"works"`
+}
+
+type GetAllTemplatesResponse struct {
+	UID    string `json:"uid"`
+	Name   string `json:"name"`
+	OSSKey string `json:"oss_key"`
 }
 
 type PortfolioRepo interface {
@@ -23,7 +31,7 @@ type PortfolioRepo interface {
 	IncreTemplateScore(context.Context, string) error
 	GetPortfolioFromDB(context.Context, string) ([]data.Portfolio, error)
 	GetPortfolioFromRedis(context.Context, string) ([]data.Portfolio, error)
-	SavePortfolioToDB(context.Context, data.Portfolio, []data.Work) error
+	SavePortfolioToDB(context.Context, data.Portfolio, []data.Work, string) error
 }
 
 type PortfolioUsecase struct {
@@ -50,7 +58,15 @@ func (uc *PortfolioUsecase) GetAllTemplates(c *gin.Context) {
 	if err := uc.repo.SaveAllTemplatesToRedis(c, templates); err != nil {
 		zap.L().Error("SaveAllTemplatesToRedis error", zap.Error(err))
 	}
-	SuccessResponse(c, templates)
+	response := []GetAllTemplatesResponse{}
+	for _, template := range templates {
+		response = append(response, GetAllTemplatesResponse{
+			UID:    template.UID,
+			Name:   template.Name,
+			OSSKey: template.OSSKey,
+		})
+	}
+	SuccessResponse(c, response)
 }
 
 func (uc *PortfolioUsecase) GetHotTemplates(c *gin.Context) {
@@ -74,15 +90,28 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
-	for i := 0; i < len(req.Works); i++ {
-		req.Works[i].OSSKey = uuid.New().String()
+	flag := false
+	if req.UID == "" {
+		req.UID = uuid.New().String()
+		flag = true
 	}
-	if err := uc.repo.SavePortfolioToDB(c, req.Portfolio, req.Works); err != nil {
+	for i := 0; i < len(req.Works); i++ {
+		if req.Works[i].OSSKey == "" {
+			req.Works[i].OSSKey = uuid.New().String()
+			req.Works[i].PortfolioUID = req.UID
+		}
+	}
+
+	if err := uc.repo.SavePortfolioToDB(c, data.Portfolio{UID: req.UID, Title: req.Title,
+		TemplateUID: req.TemplateUID,
+		Works:       req.Works}, req.Works, c.GetString("openid")); err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
-	if err := uc.repo.IncreTemplateScore(c, req.Portfolio.TemplateUID); err != nil {
-		zap.L().Error("IncreTemplateScore error", zap.Error(err))
+	if flag {
+		if err := uc.repo.IncreTemplateScore(c, req.TemplateUID); err != nil {
+			zap.L().Error("IncreTemplateScore error", zap.Error(err))
+		}
 	}
 	SuccessResponse(c, gin.H{
 		"works": req.Works,
