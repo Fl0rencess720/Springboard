@@ -11,31 +11,31 @@ import (
 )
 
 type Portfolio struct {
-	UID         string   `gorm:"primaryKey;type:varchar(255)"`
-	Openid      string   `gorm:"index;type:varchar(255)"`
-	Title       string   `gorm:"type:varchar(255)"`
-	Works       []Work   `gorm:"foreignKey:PortfolioUID;references:UID"`
+	UID         string   `gorm:"primaryKey;type:varchar(255)" json:"uid"`
+	Openid      string   `gorm:"index;type:varchar(255)" json:"openid"`
+	Title       string   `gorm:"type:varchar(255)" json:"title"`
+	Works       []Work   `gorm:"foreignKey:PortfolioUID;references:UID" json:"works"`
 	TemplateUID string   `gorm:"index;type:varchar(255)" json:"template_uid"`
-	Template    Template `gorm:"foreignKey:TemplateUID;references:UID"`
+	Template    Template `gorm:"foreignKey:TemplateUID;references:UID" json:"template"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 type Work struct {
-	OSSKey       string `gorm:"primaryKey;type:varchar(255)"`
+	OSSKey       string `gorm:"primaryKey;type:varchar(255)" json:"oss_key"`
 	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
 	// Size 格式为 axb 例如 1920x1080
-	Size       string `gorm:"type:varchar(255)"`
-	MarginTop  string `gorm:"type:varchar(255)"`
-	MarginLeft string `gorm:"type:varchar(255)"`
+	Size       string `gorm:"type:varchar(255)" json:"size"`
+	MarginTop  string `gorm:"type:varchar(255)" json:"margin_top"`
+	MarginLeft string `gorm:"type:varchar(255)" json:"margin_left"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
 type Template struct {
-	UID       string `gorm:"primaryKey;type:varchar(255)"`
-	Name      string `gorm:"type:varchar(255)"`
-	OSSKey    string `gorm:"type:varchar(255)"`
+	UID       string `gorm:"primaryKey;type:varchar(255)" json:"uid"`
+	Name      string `gorm:"type:varchar(255)" json:"name"`
+	OSSKey    string `gorm:"type:varchar(255)" json:"oss_key"`
 	CreatedAt time.Time
 }
 
@@ -58,6 +58,15 @@ func (r PortfolioRepo) GetAllTemplatesFromDB(ctx context.Context) ([]Template, e
 	}
 	return templates, nil
 }
+
+func (r PortfolioRepo) GetTemplatesFromDB(ctx context.Context, uids []string) ([]Template, error) {
+	templates := []Template{}
+	if err := r.mysqlDB.Where("uid IN ?", uids).Find(&templates).Error; err != nil {
+		return nil, err
+	}
+	return templates, nil
+}
+
 func (r PortfolioRepo) GetAllTemplatesFromRedis(ctx context.Context) ([]Template, error) {
 	result := r.redisClient.Get(ctx, "templates")
 	if result.Err() != nil {
@@ -87,6 +96,7 @@ func (r PortfolioRepo) GetHotTemplatesFromDB(ctx context.Context) ([]Template, e
 	return nil, nil
 }
 func (r PortfolioRepo) GetHotTemplatesFromRedis(ctx context.Context) ([]Template, error) {
+	//目前查询最热的5个
 	result := r.redisClient.ZRangeWithScores(ctx, "zTemplates", 0, 5)
 	if result.Err() != nil {
 		return nil, result.Err()
@@ -97,7 +107,7 @@ func (r PortfolioRepo) GetHotTemplatesFromRedis(ctx context.Context) ([]Template
 		return nil, err
 	}
 	for _, zresult := range zresults {
-		templates = append(templates, Template{OSSKey: zresult.Member.(string)})
+		templates = append(templates, Template{UID: zresult.Member.(string)})
 	}
 
 	return templates, nil

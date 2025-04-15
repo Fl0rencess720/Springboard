@@ -25,6 +25,7 @@ type GetAllTemplatesResponse struct {
 type PortfolioRepo interface {
 	GetAllTemplatesFromDB(context.Context) ([]data.Template, error)
 	GetAllTemplatesFromRedis(context.Context) ([]data.Template, error)
+	GetTemplatesFromDB(context.Context, []string) ([]data.Template, error)
 	SaveAllTemplatesToRedis(context.Context, []data.Template) error
 	GetHotTemplatesFromDB(context.Context) ([]data.Template, error)
 	GetHotTemplatesFromRedis(context.Context) ([]data.Template, error)
@@ -72,7 +73,16 @@ func (uc *PortfolioUsecase) GetAllTemplates(c *gin.Context) {
 func (uc *PortfolioUsecase) GetHotTemplates(c *gin.Context) {
 	templates, err := uc.repo.GetHotTemplatesFromRedis(c)
 	if err == nil {
-		SuccessResponse(c, templates)
+		uids := []string{}
+		for _, template := range templates {
+			uids = append(uids, template.UID)
+		}
+		templatesWithMeta, err := uc.repo.GetTemplatesFromDB(context.Background(), uids)
+		if err != nil {
+			ErrorResponse(c, ServerError, err)
+			return
+		}
+		SuccessResponse(c, templatesWithMeta)
 		return
 	}
 	zap.L().Error("GetHotTemplatesFromRedis error", zap.Error(err))
