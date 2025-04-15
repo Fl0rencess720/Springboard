@@ -39,7 +39,7 @@ services:
       - app_network
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
   mysql:
-    image: mysql:8.0
+    image: mysql:latest
     container_name: mysql
     restart: always
     ports:
@@ -59,7 +59,7 @@ services:
     command: [
         "--character-set-server=utf8mb4",
         "--collation-server=utf8mb4_unicode_ci",
-        "--default-authentication-plugin=mysql_native_password"
+        "--host-cache-size=0",  
     ]
 
 

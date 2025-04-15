@@ -24,8 +24,12 @@ type Portfolio struct {
 type Work struct {
 	OSSKey       string `gorm:"primaryKey;type:varchar(255)"`
 	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	// Size 格式为 axb 例如 1920x1080
+	Size       string `gorm:"type:varchar(255)"`
+	MarginTop  string `gorm:"type:varchar(255)"`
+	MarginLeft string `gorm:"type:varchar(255)"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type Template struct {
