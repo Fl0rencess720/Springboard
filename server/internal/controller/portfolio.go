@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Fl0rencess720/Springbroad/internal/data"
+	"github.com/Fl0rencess720/Springbroad/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -126,4 +127,55 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 	SuccessResponse(c, gin.H{
 		"works": req.Works,
 	})
+}
+
+func (uc *PortfolioUsecase) GetMyPortfolio(c *gin.Context) {
+	tokenString := c.GetHeader("Authorization")
+	claims, _, err := middleware.ParseToken(tokenString)
+	if err != nil {
+		ErrorResponse(c, ServerError, nil)
+		zap.L().Error("ParseToken error", zap.Error(err))
+	}
+	portfolio, err := uc.repo.GetPortfolioFromRedis(c, claims.Openid)
+	if err == nil {
+		SuccessResponse(c, portfolio)
+		return
+	}
+	ErrorResponse(c, ServerError, nil)
+	zap.L().Error("GetPortfolioFromRedis error", zap.Error(err))
+	portfolio, err = uc.repo.GetPortfolioFromDB(c, claims.Openid)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, portfolio)
+}
+
+func (uc *PortfolioUsecase) GetHistoricalUsageTemplates(c *gin.Context) {
+	tokenString := c.GetHeader("Authorization")
+	claims, _, err := middleware.ParseToken(tokenString)
+	if err != nil {
+		ErrorResponse(c, ServerError, nil)
+		zap.L().Error("ParseToken error", zap.Error(err))
+	}
+	templates := []data.Template{}
+	portfolio, err := uc.repo.GetPortfolioFromRedis(c, claims.Openid)
+	if err == nil {
+		for _, i := range portfolio {
+			templates = append(templates, i.Template)
+		}
+		SuccessResponse(c, templates)
+		return
+	}
+	zap.L().Error("GetPortfolioFromRedis error", zap.Error(err))
+	portfolio, err = uc.repo.GetPortfolioFromDB(c, claims.Openid)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	for _, i := range portfolio {
+		templates = append(templates, i.Template)
+	}
+	SuccessResponse(c, templates)
+	return
 }

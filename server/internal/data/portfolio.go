@@ -122,8 +122,13 @@ func (r PortfolioRepo) IncreTemplateScore(ctx context.Context, uid string) error
 }
 
 func (r PortfolioRepo) GetPortfolioFromDB(ctx context.Context, openid string) ([]Portfolio, error) {
-	return nil, nil
+	portfolio := []Portfolio{}
+	if err := r.mysqlDB.Where("uid IN ?", openid).Find(&portfolio).Error; err != nil {
+		return nil, err
+	}
+	return portfolio, nil
 }
+
 func (r PortfolioRepo) GetPortfolioFromRedis(ctx context.Context, openid string) ([]Portfolio, error) {
 	return nil, nil
 }
