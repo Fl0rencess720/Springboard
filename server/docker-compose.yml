@@ -57,9 +57,9 @@ services:
     networks:
       - app_network
     command: [
-        "--character-set-server=utf8mb4",
-        "--collation-server=utf8mb4_unicode_ci",
-        "--host-cache-size=0",  
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci",
+      "--host-cache-size=0",  
     ]
 
 
