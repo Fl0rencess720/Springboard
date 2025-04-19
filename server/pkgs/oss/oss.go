@@ -1,11 +1,12 @@
 package oss
 
 import (
+	"os"
+
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	sts20150401 "github.com/alibabacloud-go/sts-20150401/v2/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -16,9 +17,9 @@ type Credentials struct {
 }
 
 func GenerateAssumeRoleCredential() (Credentials, error) {
-	accessKeyId := viper.GetString("OSSAccessKeyId")
-	accessKeySecret := viper.GetString("OSSAccessKeySecret")
-	roleArn := viper.GetString("OSSRoleArn")
+	accessKeyId := os.Getenv("OSSAccessKeyId")
+	accessKeySecret := os.Getenv("OSSAccessKeySecret")
+	roleArn := os.Getenv("OSSRoleArn")
 	config := &openapi.Config{
 		AccessKeyId:     tea.String(accessKeyId),
 		AccessKeySecret: tea.String(accessKeySecret),

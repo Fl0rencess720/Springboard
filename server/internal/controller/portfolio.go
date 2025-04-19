@@ -33,7 +33,7 @@ type PortfolioRepo interface {
 	IncreTemplateScore(context.Context, string) error
 	GetPortfolioFromDB(context.Context, string) ([]data.Portfolio, error)
 	GetPortfolioFromRedis(context.Context, string) ([]data.Portfolio, error)
-	SavePortfolioToDB(context.Context, data.Portfolio, []data.Work, string) error
+	SavePortfolioToDB(context.Context, data.Portfolio, []data.Work) error
 }
 
 type PortfolioUsecase struct {
@@ -112,10 +112,9 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 			req.Works[i].PortfolioUID = req.UID
 		}
 	}
-
 	if err := uc.repo.SavePortfolioToDB(c, data.Portfolio{UID: req.UID, Title: req.Title,
 		TemplateUID: req.TemplateUID,
-		Works:       req.Works}, req.Works, c.GetString("openid")); err != nil {
+		Works:       req.Works, Openid: c.GetString("openid")}, req.Works); err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
@@ -125,6 +124,7 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 		}
 	}
 	SuccessResponse(c, gin.H{
+		"uid":   req.UID,
 		"works": req.Works,
 	})
 }
@@ -177,5 +177,4 @@ func (uc *PortfolioUsecase) GetHistoricalUsageTemplates(c *gin.Context) {
 		templates = append(templates, i.Template)
 	}
 	SuccessResponse(c, templates)
-	return
 }
