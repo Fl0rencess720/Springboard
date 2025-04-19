@@ -14,6 +14,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
+	github.com/samber/lo v1.49.1
 	github.com/spf13/viper v1.20.1
 	github.com/thedevsaddam/gojsonq v2.3.0+incompatible
 	go.uber.org/zap v1.27.0

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Fl0rencess720/Springbroad/internal/data"
-	"github.com/Fl0rencess720/Springbroad/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -33,6 +32,7 @@ type PortfolioRepo interface {
 	IncreTemplateScore(context.Context, string) error
 	GetPortfolioFromDB(context.Context, string) ([]data.Portfolio, error)
 	GetPortfolioFromRedis(context.Context, string) ([]data.Portfolio, error)
+	SavePortfoliosToRedis(context.Context, []data.Portfolio, string) error
 	SavePortfolioToDB(context.Context, data.Portfolio, []data.Work) error
 }
 
@@ -130,51 +130,54 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 }
 
 func (uc *PortfolioUsecase) GetMyPortfolio(c *gin.Context) {
-	tokenString := c.GetHeader("Authorization")
-	claims, _, err := middleware.ParseToken(tokenString)
-	if err != nil {
-		ErrorResponse(c, ServerError, nil)
-		zap.L().Error("ParseToken error", zap.Error(err))
-	}
-	portfolio, err := uc.repo.GetPortfolioFromRedis(c, claims.Openid)
+	openid := c.GetString("openid")
+	portfolios, err := uc.repo.GetPortfolioFromRedis(c, openid)
 	if err == nil {
-		SuccessResponse(c, portfolio)
+		SuccessResponse(c, portfolios)
 		return
 	}
-	ErrorResponse(c, ServerError, nil)
 	zap.L().Error("GetPortfolioFromRedis error", zap.Error(err))
-	portfolio, err = uc.repo.GetPortfolioFromDB(c, claims.Openid)
+	portfolios, err = uc.repo.GetPortfolioFromDB(c, openid)
 	if err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
-	SuccessResponse(c, portfolio)
+	if err := uc.repo.SavePortfoliosToRedis(c, portfolios, openid); err != nil {
+		zap.L().Error("SavePortfoliosToRedis error", zap.Error(err))
+	}
+	SuccessResponse(c, portfolios)
 }
 
 func (uc *PortfolioUsecase) GetHistoricalUsageTemplates(c *gin.Context) {
-	tokenString := c.GetHeader("Authorization")
-	claims, _, err := middleware.ParseToken(tokenString)
-	if err != nil {
-		ErrorResponse(c, ServerError, nil)
-		zap.L().Error("ParseToken error", zap.Error(err))
-	}
+	openid := c.GetString("openid")
 	templates := []data.Template{}
-	portfolio, err := uc.repo.GetPortfolioFromRedis(c, claims.Openid)
+	portfolios, err := uc.repo.GetPortfolioFromRedis(c, openid)
 	if err == nil {
-		for _, i := range portfolio {
-			templates = append(templates, i.Template)
+		seen := make(map[string]struct{})
+		for _, p := range portfolios {
+			if _, ok := seen[p.TemplateUID]; !ok {
+				templates = append(templates, p.Template)
+				seen[p.TemplateUID] = struct{}{}
+			}
 		}
 		SuccessResponse(c, templates)
 		return
 	}
 	zap.L().Error("GetPortfolioFromRedis error", zap.Error(err))
-	portfolio, err = uc.repo.GetPortfolioFromDB(c, claims.Openid)
+	portfolios, err = uc.repo.GetPortfolioFromDB(c, openid)
 	if err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
-	for _, i := range portfolio {
-		templates = append(templates, i.Template)
+	if err := uc.repo.SavePortfoliosToRedis(c, portfolios, openid); err != nil {
+		zap.L().Error("SavePortfoliosToRedis error", zap.Error(err))
+	}
+	seen := make(map[string]struct{})
+	for _, p := range portfolios {
+		if _, ok := seen[p.TemplateUID]; !ok {
+			templates = append(templates, p.Template)
+			seen[p.TemplateUID] = struct{}{}
+		}
 	}
 	SuccessResponse(c, templates)
 }

@@ -71,16 +71,15 @@ func (r PortfolioRepo) GetTemplatesFromDB(ctx context.Context, uids []string) ([
 }
 
 func (r PortfolioRepo) GetAllTemplatesFromRedis(ctx context.Context) ([]Template, error) {
-	result := r.redisClient.Get(ctx, "templates")
-	if result.Err() != nil {
-		return nil, result.Err()
+	data, err := r.redisClient.Get(ctx, "templates").Bytes()
+	if err != nil {
+		return nil, err
 	}
 	var templates []Template
-	if err := result.Scan(&templates); err != nil {
+	if err = json.Unmarshal(data, &templates); err != nil {
 		return nil, err
 	}
 	return templates, nil
-
 }
 
 func (r PortfolioRepo) SaveAllTemplatesToRedis(ctx context.Context, templates []Template) error {
@@ -125,15 +124,34 @@ func (r PortfolioRepo) IncreTemplateScore(ctx context.Context, uid string) error
 }
 
 func (r PortfolioRepo) GetPortfolioFromDB(ctx context.Context, openid string) ([]Portfolio, error) {
-	portfolio := []Portfolio{}
-	if err := r.mysqlDB.Where("uid = ?", openid).Find(&portfolio).Error; err != nil {
+	portfolios := []Portfolio{}
+	if err := r.mysqlDB.Preload("Works").Preload("Template").Where("openid = ?", openid).Find(&portfolios).Error; err != nil {
 		return nil, err
 	}
-	return portfolio, nil
+	return portfolios, nil
 }
 
 func (r PortfolioRepo) GetPortfolioFromRedis(ctx context.Context, openid string) ([]Portfolio, error) {
-	return nil, nil
+	data, err := r.redisClient.Get(ctx, "portfolios:"+openid).Bytes()
+	if err != nil {
+		return nil, err
+	}
+	var portfolios []Portfolio
+	if err = json.Unmarshal(data, &portfolios); err != nil {
+		return nil, err
+	}
+	return portfolios, nil
+}
+
+func (r PortfolioRepo) SavePortfoliosToRedis(ctx context.Context, portfolios []Portfolio, openid string) error {
+	portfoliosJson, err := json.Marshal(portfolios)
+	if err != nil {
+		return err
+	}
+	if err := r.redisClient.Set(ctx, "portfolios:"+openid, portfoliosJson, 0).Err(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfolio, works []Work) error {
