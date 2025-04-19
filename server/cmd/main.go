@@ -43,9 +43,10 @@ func newSrv() *http.Server {
 	authUsecase := controller.NewAuthUsecase(authRepo)
 	portfolioUsecase := controller.NewPortfolioUsecase(portfolioRepo)
 	feedbackUsecase := controller.NewFeedbackUseCase(feedbackRepo)
+	ossUsecase := controller.NewOSSUsecase()
 	return &http.Server{
 		Addr:    viper.GetString("server.port"),
-		Handler: api.Init(authUsecase, portfolioUsecase, feedbackUsecase),
+		Handler: api.Init(authUsecase, portfolioUsecase, feedbackUsecase, ossUsecase),
 	}
 }
 

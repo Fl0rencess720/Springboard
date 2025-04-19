@@ -28,8 +28,11 @@ type Work struct {
 	Size       string `gorm:"type:varchar(255)" json:"size"`
 	MarginTop  string `gorm:"type:varchar(255)" json:"margin_top"`
 	MarginLeft string `gorm:"type:varchar(255)" json:"margin_left"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	// 出血线，4个字符分别代表上、左、下、右的裁剪位
+	Bleed     []string `gorm:"type:json;serializer:json" json:"bleed"`
+	Page      int      `gorm:"type:varchar(255)" json:"page"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Template struct {
@@ -123,7 +126,7 @@ func (r PortfolioRepo) IncreTemplateScore(ctx context.Context, uid string) error
 
 func (r PortfolioRepo) GetPortfolioFromDB(ctx context.Context, openid string) ([]Portfolio, error) {
 	portfolio := []Portfolio{}
-	if err := r.mysqlDB.Where("uid IN ?", openid).Find(&portfolio).Error; err != nil {
+	if err := r.mysqlDB.Where("uid = ?", openid).Find(&portfolio).Error; err != nil {
 		return nil, err
 	}
 	return portfolio, nil
@@ -133,7 +136,7 @@ func (r PortfolioRepo) GetPortfolioFromRedis(ctx context.Context, openid string)
 	return nil, nil
 }
 
-func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfolio, works []Work, openid string) error {
+func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfolio, works []Work) error {
 	err := r.mysqlDB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "uid"}},
