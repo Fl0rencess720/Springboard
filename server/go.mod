@@ -7,6 +7,7 @@ require (
 	github.com/alibabacloud-go/sts-20150401/v2 v2.0.3
 	github.com/alibabacloud-go/tea v1.3.8
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
+	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-contrib/zap v1.1.5
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-redis/redis/extra/redisotel v0.3.0
@@ -14,7 +15,6 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
-	github.com/samber/lo v1.49.1
 	github.com/spf13/viper v1.20.1
 	github.com/thedevsaddam/gojsonq v2.3.0+incompatible
 	go.uber.org/zap v1.27.0
@@ -76,7 +76,6 @@ require (
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
