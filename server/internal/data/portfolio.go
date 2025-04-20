@@ -11,7 +11,8 @@ import (
 )
 
 type Portfolio struct {
-	UID         string   `gorm:"primaryKey;type:varchar(255)" json:"uid"`
+	ID          uint     `gorm:"primarykey"`
+	UID         string   `gorm:"unique;index;type:varchar(255)" json:"uid"`
 	Openid      string   `gorm:"index;type:varchar(255)" json:"openid"`
 	Title       string   `gorm:"type:varchar(255)" json:"title"`
 	Works       []Work   `gorm:"foreignKey:PortfolioUID;references:UID" json:"works"`
@@ -22,7 +23,8 @@ type Portfolio struct {
 }
 
 type Work struct {
-	OSSKey       string `gorm:"primaryKey;type:varchar(255)" json:"oss_key"`
+	ID           uint   `gorm:"primarykey"`
+	OSSKey       string `gorm:"unique;index;type:varchar(255)" json:"oss_key"`
 	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
 	// Size 格式为 axb 例如 1920x1080
 	Size       string `gorm:"type:varchar(255)" json:"size"`
@@ -36,7 +38,8 @@ type Work struct {
 }
 
 type Template struct {
-	UID       string `gorm:"primaryKey;type:varchar(255)" json:"uid"`
+	ID        uint   `gorm:"primarykey"`
+	UID       string `gorm:"unique;index;type:varchar(255)" json:"uid"`
 	Name      string `gorm:"type:varchar(255)" json:"name"`
 	OSSKey    string `gorm:"type:varchar(255)" json:"oss_key"`
 	CreatedAt time.Time
