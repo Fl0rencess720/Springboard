@@ -23,7 +23,7 @@ func Init(au *controller.AuthUsecase, pu *controller.PortfolioUsecase, sc *contr
 		auth.GET("/refresh", au.RefreshAccessToken)
 	}
 
-	app := e.Group("/api", middleware.Auth())
+	app := e.Group("/api", middleware.Cors(), middleware.Auth())
 	{
 		oss.InitAPI(app.Group("/oss"), ou)
 		portfolio.InitAPI(app.Group("/portfolio"), pu)

@@ -11,21 +11,21 @@ import (
 )
 
 type Portfolio struct {
-	ID          uint     `gorm:"primarykey"`
-	UID         string   `gorm:"unique;index;type:varchar(255)" json:"uid"`
-	Openid      string   `gorm:"index;type:varchar(255)" json:"openid"`
-	Title       string   `gorm:"type:varchar(255)" json:"title"`
-	Works       []Work   `gorm:"foreignKey:PortfolioUID;references:UID" json:"works"`
-	TemplateUID string   `gorm:"index;type:varchar(255)" json:"template_uid"`
-	Template    Template `gorm:"foreignKey:TemplateUID;references:UID" json:"template"`
+	ID          uint      `gorm:"primarykey"`
+	UID         string    `gorm:"unique;index;type:varchar(255)" json:"uid"`
+	Openid      string    `gorm:"index;type:varchar(255)" json:"openid"`
+	Title       string    `gorm:"type:varchar(255)" json:"title"`
+	Projects    []Project `gorm:"foreignKey:PortfolioUID;references:UID" json:"projects"`
+	TemplateUID string    `gorm:"index;type:varchar(255)" json:"template_uid"`
+	Template    Template  `gorm:"foreignKey:TemplateUID;references:UID" json:"template"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 type Work struct {
-	ID           uint   `gorm:"primarykey"`
-	OSSKey       string `gorm:"unique;index;type:varchar(255)" json:"oss_key"`
-	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
+	ID         uint   `gorm:"primarykey"`
+	OSSKey     string `gorm:"unique;index;type:varchar(255)" json:"oss_key"`
+	ProjectUID string `gorm:"type:varchar(255)" json:"project_uid"`
 	// Size 格式为 axb 例如 1920x1080
 	Size       string `gorm:"type:varchar(255)" json:"size"`
 	MarginTop  string `gorm:"type:varchar(255)" json:"margin_top"`
@@ -43,6 +43,17 @@ type Template struct {
 	Name      string `gorm:"type:varchar(255)" json:"name"`
 	OSSKey    string `gorm:"type:varchar(255)" json:"oss_key"`
 	CreatedAt time.Time
+}
+
+type Project struct {
+	ID           uint   `gorm:"primarykey"`
+	UID          string `gorm:"unique;index;type:varchar(255)" json:"uid"`
+	Name         string `gorm:"type:varchar(255)" json:"name"`
+	Order        int    `gorm:"type:varchar(255)" json:"order"`
+	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
+	Works        []Work `gorm:"foreignKey:ProjectUID;references:UID" json:"works"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type PortfolioRepo struct {
@@ -83,6 +94,14 @@ func (r PortfolioRepo) GetAllTemplatesFromRedis(ctx context.Context) ([]Template
 		return nil, err
 	}
 	return templates, nil
+}
+
+func (r PortfolioRepo) GetTemplateByUIDFromDB(ctx context.Context, uid string) (Template, error) {
+	template := Template{}
+	if err := r.mysqlDB.Where("uid = ?", uid).First(&template).Error; err != nil {
+		return Template{}, err
+	}
+	return template, nil
 }
 
 func (r PortfolioRepo) SaveAllTemplatesToRedis(ctx context.Context, templates []Template) error {
@@ -126,15 +145,15 @@ func (r PortfolioRepo) IncreTemplateScore(ctx context.Context, uid string) error
 	return nil
 }
 
-func (r PortfolioRepo) GetPortfolioFromDB(ctx context.Context, openid string) ([]Portfolio, error) {
+func (r PortfolioRepo) GetPortfoliosFromDB(ctx context.Context, openid string) ([]Portfolio, error) {
 	portfolios := []Portfolio{}
-	if err := r.mysqlDB.Preload("Works").Preload("Template").Where("openid = ?", openid).Find(&portfolios).Error; err != nil {
+	if err := r.mysqlDB.Preload("Projects.Works").Preload("Template").Where("openid = ?", openid).Find(&portfolios).Error; err != nil {
 		return nil, err
 	}
 	return portfolios, nil
 }
 
-func (r PortfolioRepo) GetPortfolioFromRedis(ctx context.Context, openid string) ([]Portfolio, error) {
+func (r PortfolioRepo) GetPortfoliosFromRedis(ctx context.Context, openid string) ([]Portfolio, error) {
 	data, err := r.redisClient.Get(ctx, "portfolios:"+openid).Bytes()
 	if err != nil {
 		return nil, err
@@ -144,6 +163,14 @@ func (r PortfolioRepo) GetPortfolioFromRedis(ctx context.Context, openid string)
 		return nil, err
 	}
 	return portfolios, nil
+}
+
+func (r PortfolioRepo) GetPortfolioByUIDFromDB(ctx context.Context, uid string) (Portfolio, error) {
+	portfolio := Portfolio{}
+	if err := r.mysqlDB.Preload("Projects.Works").Preload("Template").Where("uid = ?", uid).First(&portfolio).Error; err != nil {
+		return Portfolio{}, err
+	}
+	return portfolio, nil
 }
 
 func (r PortfolioRepo) SavePortfoliosToRedis(ctx context.Context, portfolios []Portfolio, openid string) error {
@@ -157,12 +184,26 @@ func (r PortfolioRepo) SavePortfoliosToRedis(ctx context.Context, portfolios []P
 	return nil
 }
 
-func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfolio, works []Work) error {
+func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfolio) error {
+	projects := portfolio.Projects
+	works := []Work{}
+	for _, project := range projects {
+		for _, work := range project.Works {
+			work.ProjectUID = project.UID
+			works = append(works, work)
+		}
+	}
 	err := r.mysqlDB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "uid"}},
 			UpdateAll: true,
 		}).Create(&portfolio).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "uid"}},
+			UpdateAll: true,
+		}).Create(&projects).Error; err != nil {
 			return err
 		}
 		if err := tx.Clauses(clause.OnConflict{

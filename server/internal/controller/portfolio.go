@@ -10,10 +10,10 @@ import (
 )
 
 type SavePortfolioRequest struct {
-	UID         string      `json:"uid"`
-	Title       string      `json:"title"`
-	TemplateUID string      `json:"template_uid"`
-	Works       []data.Work `json:"works"`
+	UID         string         `json:"uid"`
+	Title       string         `json:"title"`
+	TemplateUID string         `json:"template_uid"`
+	Projects    []data.Project `json:"projects"`
 }
 
 type GetAllTemplatesResponse struct {
@@ -30,10 +30,13 @@ type PortfolioRepo interface {
 	GetHotTemplatesFromDB(context.Context) ([]data.Template, error)
 	GetHotTemplatesFromRedis(context.Context) ([]data.Template, error)
 	IncreTemplateScore(context.Context, string) error
-	GetPortfolioFromDB(context.Context, string) ([]data.Portfolio, error)
-	GetPortfolioFromRedis(context.Context, string) ([]data.Portfolio, error)
+	GetTemplateByUIDFromDB(context.Context, string) (data.Template, error)
+
+	GetPortfoliosFromDB(context.Context, string) ([]data.Portfolio, error)
+	GetPortfoliosFromRedis(context.Context, string) ([]data.Portfolio, error)
+	GetPortfolioByUIDFromDB(context.Context, string) (data.Portfolio, error)
 	SavePortfoliosToRedis(context.Context, []data.Portfolio, string) error
-	SavePortfolioToDB(context.Context, data.Portfolio, []data.Work) error
+	SavePortfolioToDB(context.Context, data.Portfolio) error
 }
 
 type PortfolioUsecase struct {
@@ -71,6 +74,16 @@ func (uc *PortfolioUsecase) GetAllTemplates(c *gin.Context) {
 	SuccessResponse(c, response)
 }
 
+func (uc *PortfolioUsecase) GetTemplateByUID(c *gin.Context) {
+	uid := c.Query("uid")
+	template, err := uc.repo.GetTemplateByUIDFromDB(c, uid)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, template)
+}
+
 func (uc *PortfolioUsecase) GetHotTemplates(c *gin.Context) {
 	templates, err := uc.repo.GetHotTemplatesFromRedis(c)
 	if err == nil {
@@ -106,15 +119,15 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 		req.UID = uuid.New().String()
 		flag = true
 	}
-	for i := 0; i < len(req.Works); i++ {
-		if req.Works[i].OSSKey == "" {
-			req.Works[i].OSSKey = uuid.New().String()
-			req.Works[i].PortfolioUID = req.UID
+	for i := 0; i < len(req.Projects); i++ {
+		if req.Projects[i].UID == "" {
+			req.Projects[i].UID = uuid.New().String()
+			req.Projects[i].PortfolioUID = req.UID
 		}
 	}
 	if err := uc.repo.SavePortfolioToDB(c, data.Portfolio{UID: req.UID, Title: req.Title,
 		TemplateUID: req.TemplateUID,
-		Works:       req.Works, Openid: c.GetString("openid")}, req.Works); err != nil {
+		Projects:    req.Projects, Openid: c.GetString("openid")}); err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
@@ -124,20 +137,20 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 		}
 	}
 	SuccessResponse(c, gin.H{
-		"uid":   req.UID,
-		"works": req.Works,
+		"uid":      req.UID,
+		"projects": req.Projects,
 	})
 }
 
-func (uc *PortfolioUsecase) GetMyPortfolio(c *gin.Context) {
+func (uc *PortfolioUsecase) GetMyPortfolios(c *gin.Context) {
 	openid := c.GetString("openid")
-	portfolios, err := uc.repo.GetPortfolioFromRedis(c, openid)
+	portfolios, err := uc.repo.GetPortfoliosFromRedis(c, openid)
 	if err == nil {
 		SuccessResponse(c, portfolios)
 		return
 	}
 	zap.L().Error("GetPortfolioFromRedis error", zap.Error(err))
-	portfolios, err = uc.repo.GetPortfolioFromDB(c, openid)
+	portfolios, err = uc.repo.GetPortfoliosFromDB(c, openid)
 	if err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
@@ -148,10 +161,20 @@ func (uc *PortfolioUsecase) GetMyPortfolio(c *gin.Context) {
 	SuccessResponse(c, portfolios)
 }
 
+func (uc *PortfolioUsecase) GetPortfolioByUID(c *gin.Context) {
+	uid := c.Query("uid")
+	portfolio, err := uc.repo.GetPortfolioByUIDFromDB(c, uid)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, portfolio)
+}
+
 func (uc *PortfolioUsecase) GetHistoricalUsageTemplates(c *gin.Context) {
 	openid := c.GetString("openid")
 	templates := []data.Template{}
-	portfolios, err := uc.repo.GetPortfolioFromRedis(c, openid)
+	portfolios, err := uc.repo.GetPortfoliosFromRedis(c, openid)
 	if err == nil {
 		seen := make(map[string]struct{})
 		for _, p := range portfolios {
@@ -164,7 +187,7 @@ func (uc *PortfolioUsecase) GetHistoricalUsageTemplates(c *gin.Context) {
 		return
 	}
 	zap.L().Error("GetPortfolioFromRedis error", zap.Error(err))
-	portfolios, err = uc.repo.GetPortfolioFromDB(c, openid)
+	portfolios, err = uc.repo.GetPortfoliosFromDB(c, openid)
 	if err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
