@@ -16,12 +16,12 @@ type Portfolio struct {
 	Openid      string    `gorm:"index;type:varchar(255)" json:"openid"`
 	Title       string    `gorm:"type:varchar(255)" json:"title"`
 	Projects    []Project `gorm:"foreignKey:PortfolioUID;references:UID" json:"projects"`
+	Texts       []Text    `gorm:"foreignKey:PortfolioUID;references:UID" json:"texts"`
 	TemplateUID string    `gorm:"index;type:varchar(255)" json:"template_uid"`
 	Template    Template  `gorm:"foreignKey:TemplateUID;references:UID" json:"template"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
-
 type Work struct {
 	ID         uint   `gorm:"primarykey"`
 	OSSKey     string `gorm:"unique;index;type:varchar(255)" json:"oss_key"`
@@ -30,26 +30,48 @@ type Work struct {
 	Size       string `gorm:"type:varchar(255)" json:"size"`
 	MarginTop  string `gorm:"type:varchar(255)" json:"margin_top"`
 	MarginLeft string `gorm:"type:varchar(255)" json:"margin_left"`
-	// 出血线，4个字符分别代表上、左、下、右的裁剪位
-	Bleed     []string `gorm:"type:json;serializer:json" json:"bleed"`
-	Page      int      `gorm:"type:varchar(255)" json:"page"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Page       int    `gorm:"type:int" json:"page"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
-
+type Text struct {
+	ID           uint   `gorm:"primarykey"`
+	Content      string `gorm:"type:varchar(255)" json:"content"`
+	FontSize     string `gorm:"type:varchar(255)" json:"font_size"`
+	Size         string `gorm:"type:varchar(255)" json:"size"`
+	MarginTop    string `gorm:"type:varchar(255)" json:"margin_top"`
+	MarginLeft   string `gorm:"type:varchar(255)" json:"margin_left"`
+	Page         int    `gorm:"type:int" json:"page"`
+	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
+}
 type Template struct {
-	ID        uint   `gorm:"primarykey"`
-	UID       string `gorm:"unique;index;type:varchar(255)" json:"uid"`
-	Name      string `gorm:"type:varchar(255)" json:"name"`
-	OSSKey    string `gorm:"type:varchar(255)" json:"oss_key"`
-	CreatedAt time.Time
+	ID         uint   `gorm:"primarykey"`
+	UID        string `gorm:"unique;index;type:varchar(255)" json:"uid"`
+	Name       string `gorm:"type:varchar(255)" json:"name"`
+	FontOSSKey string `gorm:"type:varchar(255)" json:"font_oss_key"`
+	Pages      []Page `gorm:"foreignKey:TemplateUID;references:UID" json:"pages"`
+	CreatedAt  time.Time
 }
 
+// 模板中的固有页面
+type Page struct {
+	ID            uint   `gorm:"primarykey"`
+	UID           string `gorm:"unique;index;type:varchar(255)" json:"uid"`
+	OSSKey        string `gorm:"unique;index;type:varchar(255)" json:"oss_key"`
+	PreviewOSSKey string `gorm:"type:varchar(255)" json:"preview_oss_key"`
+	// 出血线，4个字符分别代表svg的x、y、width、height
+	Bleed         []string `gorm:"type:json;serializer:json" json:"bleed"`
+	TemplateUID   string   `gorm:"type:varchar(255)" json:"template_uid"`
+	MarginTop     string   `gorm:"type:varchar(255)" json:"margin_top"`
+	MarginLeft    string   `gorm:"type:varchar(255)" json:"margin_left"`
+	Size          string   `gorm:"type:varchar(255)" json:"size"`
+	IsContentPage bool     `gorm:"type:bool" json:"is_content_page"`
+}
 type Project struct {
 	ID           uint   `gorm:"primarykey"`
 	UID          string `gorm:"unique;index;type:varchar(255)" json:"uid"`
 	Name         string `gorm:"type:varchar(255)" json:"name"`
-	Order        int    `gorm:"type:varchar(255)" json:"order"`
+	Order        int    `gorm:"type:int" json:"order"`
 	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
 	Works        []Work `gorm:"foreignKey:ProjectUID;references:UID" json:"works"`
 	CreatedAt    time.Time
@@ -70,7 +92,7 @@ func NewPortfolioRepo(mysqlDB *gorm.DB, redisClient *redis.Client) PortfolioRepo
 
 func (r PortfolioRepo) GetAllTemplatesFromDB(ctx context.Context) ([]Template, error) {
 	templates := []Template{}
-	if err := r.mysqlDB.Find(&templates).Error; err != nil {
+	if err := r.mysqlDB.Preload("Pages").Find(&templates).Error; err != nil {
 		return nil, err
 	}
 	return templates, nil
@@ -78,7 +100,7 @@ func (r PortfolioRepo) GetAllTemplatesFromDB(ctx context.Context) ([]Template, e
 
 func (r PortfolioRepo) GetTemplatesFromDB(ctx context.Context, uids []string) ([]Template, error) {
 	templates := []Template{}
-	if err := r.mysqlDB.Where("uid IN ?", uids).Find(&templates).Error; err != nil {
+	if err := r.mysqlDB.Preload("Pages").Where("uid IN ?", uids).Find(&templates).Error; err != nil {
 		return nil, err
 	}
 	return templates, nil
@@ -98,7 +120,7 @@ func (r PortfolioRepo) GetAllTemplatesFromRedis(ctx context.Context) ([]Template
 
 func (r PortfolioRepo) GetTemplateByUIDFromDB(ctx context.Context, uid string) (Template, error) {
 	template := Template{}
-	if err := r.mysqlDB.Where("uid = ?", uid).First(&template).Error; err != nil {
+	if err := r.mysqlDB.Preload("Pages").Where("uid = ?", uid).First(&template).Error; err != nil {
 		return Template{}, err
 	}
 	return template, nil

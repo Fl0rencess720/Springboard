@@ -16,11 +16,11 @@ type SavePortfolioRequest struct {
 	Projects    []data.Project `json:"projects"`
 }
 
-type GetAllTemplatesResponse struct {
-	UID    string `json:"uid"`
-	Name   string `json:"name"`
-	OSSKey string `json:"oss_key"`
-}
+// type GetAllTemplatesResponse struct {
+// 	UID    string `json:"uid"`
+// 	Name   string `json:"name"`
+// 	OSSKey string `json:"oss_key"`
+// }
 
 type PortfolioRepo interface {
 	GetAllTemplatesFromDB(context.Context) ([]data.Template, error)
@@ -63,15 +63,15 @@ func (uc *PortfolioUsecase) GetAllTemplates(c *gin.Context) {
 	if err := uc.repo.SaveAllTemplatesToRedis(c, templates); err != nil {
 		zap.L().Error("SaveAllTemplatesToRedis error", zap.Error(err))
 	}
-	response := []GetAllTemplatesResponse{}
-	for _, template := range templates {
-		response = append(response, GetAllTemplatesResponse{
-			UID:    template.UID,
-			Name:   template.Name,
-			OSSKey: template.OSSKey,
-		})
-	}
-	SuccessResponse(c, response)
+	// response := []GetAllTemplatesResponse{}
+	// for _, template := range templates {
+	// 	response = append(response, GetAllTemplatesResponse{
+	// 		UID:    template.UID,
+	// 		Name:   template.Name,
+	// 		OSSKey: template.OSSKey,
+	// 	})
+	// }
+	SuccessResponse(c, templates)
 }
 
 func (uc *PortfolioUsecase) GetTemplateByUID(c *gin.Context) {
@@ -136,9 +136,16 @@ func (uc *PortfolioUsecase) SavePortfolio(c *gin.Context) {
 			zap.L().Error("IncreTemplateScore error", zap.Error(err))
 		}
 	}
+	templates, err := uc.repo.GetTemplateByUIDFromDB(c, req.TemplateUID)
+	if err != nil {
+		zap.L().Error("GetTemplateByUIDFromDB error", zap.Error(err))
+		ErrorResponse(c, ServerError, err)
+		return
+	}
 	SuccessResponse(c, gin.H{
 		"uid":      req.UID,
 		"projects": req.Projects,
+		"template": templates,
 	})
 }
 
