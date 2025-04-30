@@ -37,7 +37,7 @@ func main() {
 }
 
 func newSrv() *http.Server {
-	authRepo := data.NewAuthRepo()
+	authRepo := data.NewAuthRepo(data.GetDB())
 	portfolioRepo := data.NewPortfolioRepo(data.GetDB(), data.GetRedis())
 	feedbackRepo := data.NewFeedbackRepo(data.GetDB())
 	authUsecase := controller.NewAuthUsecase(authRepo)
