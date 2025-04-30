@@ -26,7 +26,7 @@ func GenAccessToken(openid string) (string, error) {
 		Openid: openid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        time.Now().String(),
-			Issuer:    "Springbroad",
+			Issuer:    "Springboard",
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
 		},
@@ -42,7 +42,7 @@ func GenAccessToken(openid string) (string, error) {
 func GenRefreshToken() (string, error) {
 	rc := jwt.RegisteredClaims{
 		ID:        time.Now().String(),
-		Issuer:    "Springbroad",
+		Issuer:    "Springboard",
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(14 * 24 * time.Hour)),
 	}

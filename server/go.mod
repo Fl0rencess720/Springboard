@@ -1,4 +1,4 @@
-module github.com/Fl0rencess720/Springbroad
+module github.com/Fl0rencess720/Springboard
 
 go 1.23.5
 

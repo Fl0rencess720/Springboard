@@ -3,11 +3,11 @@ package api
 import (
 	"time"
 
-	"github.com/Fl0rencess720/Springbroad/api/feedback"
-	"github.com/Fl0rencess720/Springbroad/api/oss"
-	"github.com/Fl0rencess720/Springbroad/api/portfolio"
-	"github.com/Fl0rencess720/Springbroad/internal/controller"
-	"github.com/Fl0rencess720/Springbroad/internal/middleware"
+	"github.com/Fl0rencess720/Springboard/api/feedback"
+	"github.com/Fl0rencess720/Springboard/api/oss"
+	"github.com/Fl0rencess720/Springboard/api/portfolio"
+	"github.com/Fl0rencess720/Springboard/internal/controller"
+	"github.com/Fl0rencess720/Springboard/internal/middleware"
 
 	ginZap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"

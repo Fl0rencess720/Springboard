@@ -1,4 +1,4 @@
-# 跳板Springbroad 
+# 跳板Springboard 
 ## 后端
 ### 文件结构
 ```sh

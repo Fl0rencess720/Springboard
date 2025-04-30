@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/Fl0rencess720/Springbroad/pkgs/oss"
+	"github.com/Fl0rencess720/Springboard/pkgs/oss"
 	"github.com/gin-gonic/gin"
 )
 

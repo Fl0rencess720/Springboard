@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/Fl0rencess720/Springbroad/consts"
+	"github.com/Fl0rencess720/Springboard/consts"
 
 	"github.com/natefinch/lumberjack"
 	"github.com/spf13/viper"
