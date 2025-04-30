@@ -25,7 +25,7 @@ func mysqlInit() {
 	if err != nil {
 		panic("failed to connect mysql")
 	}
-	if err := mysqlDB.AutoMigrate(&Portfolio{}, &Work{}, &Feedback{}, &Page{}, &Template{}, &Text{}); err != nil {
+	if err := mysqlDB.AutoMigrate(&AppUser{}, &Portfolio{}, &Work{}, &Feedback{}, &Page{}, &Template{}, &Text{}); err != nil {
 		panic("failed to migrate mysql")
 	}
 	db = mysqlDB

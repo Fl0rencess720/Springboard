@@ -20,6 +20,10 @@ func Init(au *controller.AuthUsecase, pu *controller.PortfolioUsecase, sc *contr
 	auth := e.Group("/api")
 	{
 		auth.POST("/login", au.Login)
+
+		auth.POST("/register/app", au.AppRegister)
+		auth.POST("/login/app", au.AppLogin)
+
 		auth.GET("/refresh", au.RefreshAccessToken)
 	}
 
