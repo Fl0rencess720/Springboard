@@ -35,7 +35,7 @@ func GenerateAssumeRoleCredential() (Credentials, error) {
 	request := &sts20150401.AssumeRoleRequest{
 		DurationSeconds: tea.Int64(3600),
 		RoleArn:         tea.String(roleArn),
-		RoleSessionName: tea.String("springbroad"),
+		RoleSessionName: tea.String("springboard"),
 	}
 	response, err := client.AssumeRoleWithOptions(request, &util.RuntimeOptions{})
 	if err != nil {

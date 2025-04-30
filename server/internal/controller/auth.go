@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Fl0rencess720/Springbroad/internal/middleware"
+	"github.com/Fl0rencess720/Springboard/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"github.com/thedevsaddam/gojsonq"
