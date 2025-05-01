@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	sts20150401 "github.com/alibabacloud-go/sts-20150401/v2/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"go.uber.org/zap"
 )
 
@@ -79,4 +81,25 @@ func GeneratePolicyAndSignature(accessKeyID, accessKeySecret, securityToken stri
 	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 
 	return base64Policy, signature, nil
+}
+
+func GenetrateDownloadSignedURL(creds Credentials, ossKey string) (string, error) {
+
+	ossEndpoint := "https://oss-cn-shenzhen.aliyuncs.com"
+
+	client, err := oss.New(ossEndpoint, creds.AccessKeyId, creds.AccessKeySecret, oss.SecurityToken(creds.SecurityToken))
+	if err != nil {
+		return "", fmt.Errorf("创建 OSS 客户端失败: %v", err)
+	}
+
+	bucketHandle, err := client.Bucket("springboard")
+	if err != nil {
+		return "", fmt.Errorf("获取 OSS Bucket 失败: %v", err)
+	}
+
+	signedURL, err := bucketHandle.SignURL(ossKey, oss.HTTPGet, 600)
+	if err != nil {
+		return "", fmt.Errorf("生成签名 URL 失败: %v", err)
+	}
+	return signedURL, nil
 }

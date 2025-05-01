@@ -7,6 +7,7 @@ require (
 	github.com/alibabacloud-go/sts-20150401/v2 v2.0.3
 	github.com/alibabacloud-go/tea v1.3.8
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-contrib/zap v1.1.5
 	github.com/gin-gonic/gin v1.10.0
@@ -75,6 +76,7 @@ require (
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect

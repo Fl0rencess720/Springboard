@@ -6,5 +6,6 @@ import (
 )
 
 func InitAPI(group *gin.RouterGroup, ou *controller.OSSUsecase) {
-	group.GET("/sts", ou.GetCredentials)
+	group.GET("/sts/upload", ou.GetCredentials)
+	group.GET("/sts/download", ou.GetDownloadSignedUrl)
 }
