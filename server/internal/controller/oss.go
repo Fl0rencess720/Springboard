@@ -36,3 +36,20 @@ func (uc *OSSUsecase) GetCredentials(c *gin.Context) {
 		"bucket":        "springboard",
 	})
 }
+
+func (uc *OSSUsecase) GetDownloadSignedUrl(c *gin.Context) {
+	ossKey := c.Query("ossKey")
+	credentials, err := oss.GenerateAssumeRoleCredential()
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	signedUrl, err := oss.GenetrateDownloadSignedURL(credentials, ossKey)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, gin.H{
+		"signedUrl": signedUrl,
+	})
+}
