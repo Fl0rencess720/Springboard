@@ -21,5 +21,18 @@ func (uc *OSSUsecase) GetCredentials(c *gin.Context) {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
-	SuccessResponse(c, credentials)
+	policy, signature, err := oss.GeneratePolicyAndSignature(credentials.AccessKeyId, credentials.AccessKeySecret, credentials.SecurityToken)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, gin.H{
+		"accessKeyId":   credentials.AccessKeyId,
+		"policy":        policy,
+		"signature":     signature,
+		"securityToken": credentials.SecurityToken,
+		"expiration":    credentials.Expiration,
+		"region":        "oss-cn-shenzhen",
+		"bucket":        "springboard",
+	})
 }

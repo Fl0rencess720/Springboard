@@ -1,7 +1,12 @@
 package oss
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/json"
 	"os"
+	"time"
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	sts20150401 "github.com/alibabacloud-go/sts-20150401/v2/client"
@@ -14,6 +19,7 @@ type Credentials struct {
 	AccessKeyId     string `json:"AccessKeyId"`
 	AccessKeySecret string `json:"AccessKeySecret"`
 	SecurityToken   string `json:"SecurityToken"`
+	Expiration      string `json:"Expiration"`
 }
 
 func GenerateAssumeRoleCredential() (Credentials, error) {
@@ -47,5 +53,30 @@ func GenerateAssumeRoleCredential() (Credentials, error) {
 		AccessKeyId:     tea.StringValue(credentials.AccessKeyId),
 		AccessKeySecret: tea.StringValue(credentials.AccessKeySecret),
 		SecurityToken:   tea.StringValue(credentials.SecurityToken),
+		Expiration:      tea.StringValue(credentials.Expiration),
 	}, nil
+}
+
+func GeneratePolicyAndSignature(accessKeyID, accessKeySecret, securityToken string) (string, string, error) {
+	expiration := time.Now().Add(30 * time.Minute).UTC().Format("2006-01-02T15:04:05.000Z")
+	policy := map[string]interface{}{
+		"expiration": expiration,
+		"conditions": []interface{}{
+			map[string]string{"bucket": "springboard"},
+			map[string]string{"x-oss-security-token": securityToken},
+		},
+	}
+
+	policyJSON, err := json.Marshal(policy)
+	if err != nil {
+		zap.L().Error("Failed to marshal policy", zap.Error(err))
+		return "", "", err
+	}
+	base64Policy := base64.StdEncoding.EncodeToString(policyJSON)
+
+	mac := hmac.New(sha1.New, []byte(accessKeySecret))
+	mac.Write([]byte(base64Policy))
+	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+
+	return base64Policy, signature, nil
 }
