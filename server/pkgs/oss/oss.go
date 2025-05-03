@@ -103,3 +103,28 @@ func GenetrateDownloadSignedURL(creds Credentials, ossKey string) (string, error
 	}
 	return signedURL, nil
 }
+
+func GenetratePreviewSignedURL(creds Credentials, ossKey string) (string, error) {
+
+	ossEndpoint := "https://oss-cn-shenzhen.aliyuncs.com"
+
+	client, err := oss.New(ossEndpoint, creds.AccessKeyId, creds.AccessKeySecret, oss.SecurityToken(creds.SecurityToken))
+	if err != nil {
+		return "", fmt.Errorf("创建 OSS 客户端失败: %v", err)
+	}
+
+	bucketHandle, err := client.Bucket("springboard")
+	if err != nil {
+		return "", fmt.Errorf("获取 OSS Bucket 失败: %v", err)
+	}
+
+	options := []oss.Option{
+		oss.ResponseContentDisposition("inline"),
+	}
+
+	signedURL, err := bucketHandle.SignURL(ossKey, oss.HTTPGet, 600, options...)
+	if err != nil {
+		return "", fmt.Errorf("生成签名 URL 失败: %v", err)
+	}
+	return signedURL, nil
+}

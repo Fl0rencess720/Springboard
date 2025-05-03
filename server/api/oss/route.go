@@ -8,4 +8,5 @@ import (
 func InitAPI(group *gin.RouterGroup, ou *controller.OSSUsecase) {
 	group.GET("/sts/upload", ou.GetCredentials)
 	group.GET("/sts/download", ou.GetDownloadSignedUrl)
+	group.GET("/sts/preview", ou.GetPreviewSignedUrl)
 }

@@ -53,3 +53,20 @@ func (uc *OSSUsecase) GetDownloadSignedUrl(c *gin.Context) {
 		"signedUrl": signedUrl,
 	})
 }
+
+func (uc *OSSUsecase) GetPreviewSignedUrl(c *gin.Context) {
+	ossKey := c.Query("ossKey")
+	credentials, err := oss.GenerateAssumeRoleCredential()
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	signedUrl, err := oss.GenetratePreviewSignedURL(credentials, ossKey)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, gin.H{
+		"signedUrl": signedUrl,
+	})
+}
