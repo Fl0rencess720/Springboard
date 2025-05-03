@@ -119,7 +119,7 @@ func GenetratePreviewSignedURL(creds Credentials, ossKey string) (string, error)
 	}
 
 	options := []oss.Option{
-		oss.Process("response-content-disposition=inline"),
+		oss.ResponseContentDisposition("inline"),
 	}
 
 	signedURL, err := bucketHandle.SignURL(ossKey, oss.HTTPGet, 600, options...)
