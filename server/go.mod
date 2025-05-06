@@ -7,7 +7,7 @@ require (
 	github.com/alibabacloud-go/sts-20150401/v2 v2.0.3
 	github.com/alibabacloud-go/tea v1.3.8
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
-	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.2.2
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-contrib/zap v1.1.5
 	github.com/gin-gonic/gin v1.10.0

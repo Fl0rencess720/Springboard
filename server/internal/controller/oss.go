@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"context"
+
 	"github.com/Fl0rencess720/Springboard/pkgs/oss"
 	"github.com/gin-gonic/gin"
 )
@@ -16,57 +18,37 @@ func NewOSSUsecase() *OSSUsecase {
 }
 
 func (uc *OSSUsecase) GetCredentials(c *gin.Context) {
-	credentials, err := oss.GenerateAssumeRoleCredential()
+	credentials, err := oss.GenerateAssumeRoleCredential(context.TODO())
 	if err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
-	policy, signature, err := oss.GeneratePolicyAndSignature(credentials.AccessKeyId, credentials.AccessKeySecret, credentials.SecurityToken)
-	if err != nil {
-		ErrorResponse(c, ServerError, err)
-		return
-	}
-	SuccessResponse(c, gin.H{
-		"accessKeyId":   credentials.AccessKeyId,
-		"policy":        policy,
-		"signature":     signature,
-		"securityToken": credentials.SecurityToken,
-		"expiration":    credentials.Expiration,
-		"region":        "oss-cn-shenzhen",
-		"bucket":        "springboard",
-	})
-}
-
-func (uc *OSSUsecase) GetDownloadSignedUrl(c *gin.Context) {
-	ossKey := c.Query("ossKey")
-	credentials, err := oss.GenerateAssumeRoleCredential()
-	if err != nil {
-		ErrorResponse(c, ServerError, err)
-		return
-	}
-	signedUrl, err := oss.GenetrateDownloadSignedURL(credentials, ossKey)
-	if err != nil {
-		ErrorResponse(c, ServerError, err)
-		return
-	}
-	SuccessResponse(c, gin.H{
-		"signedUrl": signedUrl,
-	})
+	SuccessResponse(c, credentials)
 }
 
 func (uc *OSSUsecase) GetPreviewSignedUrl(c *gin.Context) {
 	ossKey := c.Query("ossKey")
-	credentials, err := oss.GenerateAssumeRoleCredential()
-	if err != nil {
-		ErrorResponse(c, ServerError, err)
-		return
-	}
-	signedUrl, err := oss.GenetratePreviewSignedURL(credentials, ossKey)
+	previewUrl, err := oss.PresignPreviewUrl(ossKey)
 	if err != nil {
 		ErrorResponse(c, ServerError, err)
 		return
 	}
 	SuccessResponse(c, gin.H{
-		"signedUrl": signedUrl,
+		"previewUrl": previewUrl,
+	})
+}
+
+func (uc *OSSUsecase) GetUploadSignedUrl(c *gin.Context) {
+	filename := c.Query("filename")
+	contentType := c.DefaultQuery("contentType", "application/octet-stream")
+	objectkey := oss.GenerateUniqueKey(filename)
+	uploadUrl, err := oss.PresignUploadUrl(objectkey, contentType)
+	if err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, gin.H{
+		"uploadUrl": uploadUrl,
+		"ossKey":    objectkey,
 	})
 }

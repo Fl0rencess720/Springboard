@@ -1,11 +1,9 @@
 package oss
 
 import (
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/json"
+	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -13,18 +11,36 @@ import (
 	sts20150401 "github.com/alibabacloud-go/sts-20150401/v2/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"go.uber.org/zap"
+
+	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss"
+	"github.com/aliyun/alibabacloud-oss-go-sdk-v2/oss/credentials"
 )
 
-type Credentials struct {
-	AccessKeyId     string `json:"AccessKeyId"`
-	AccessKeySecret string `json:"AccessKeySecret"`
-	SecurityToken   string `json:"SecurityToken"`
-	Expiration      string `json:"Expiration"`
+// type Credentials struct {
+// 	AccessKeyId     string `json:"AccessKeyId"`
+// 	AccessKeySecret string `json:"AccessKeySecret"`
+// 	SecurityToken   string `json:"SecurityToken"`
+// }
+
+var (
+	region     string = "cn-shenzhen" // SDK 会在前面添加 "oss-" 前缀
+	bucketName string = "springboard"
+	cfg        *oss.Config
+)
+
+func init() {
+	// SDK 会自动调用传入的函数刷新 credential
+	cfg = oss.LoadDefaultConfig().
+		WithCredentialsProvider(
+			credentials.NewCredentialsFetcherProvider(
+				credentials.CredentialsFetcherFunc(GenerateAssumeRoleCredential),
+			),
+		).
+		WithRegion(region)
 }
 
-func GenerateAssumeRoleCredential() (Credentials, error) {
+func GenerateAssumeRoleCredential(ctx context.Context) (credentials.Credentials, error) {
 	accessKeyId := os.Getenv("OSSAccessKeyId")
 	accessKeySecret := os.Getenv("OSSAccessKeySecret")
 	roleArn := os.Getenv("OSSRoleArn")
@@ -37,7 +53,7 @@ func GenerateAssumeRoleCredential() (Credentials, error) {
 	client, err := sts20150401.NewClient(config)
 	if err != nil {
 		zap.L().Error("Failed to create STS client", zap.Error(err))
-		return Credentials{}, err
+		return credentials.Credentials{}, fmt.Errorf("failed to create STS client: %w", err)
 	}
 
 	request := &sts20150401.AssumeRoleRequest{
@@ -48,83 +64,73 @@ func GenerateAssumeRoleCredential() (Credentials, error) {
 	response, err := client.AssumeRoleWithOptions(request, &util.RuntimeOptions{})
 	if err != nil {
 		zap.L().Error("Failed to assume role", zap.Error(err))
-		return Credentials{}, err
+		return credentials.Credentials{}, err
 	}
-	credentials := response.Body.Credentials
-	return Credentials{
-		AccessKeyId:     tea.StringValue(credentials.AccessKeyId),
-		AccessKeySecret: tea.StringValue(credentials.AccessKeySecret),
-		SecurityToken:   tea.StringValue(credentials.SecurityToken),
-		Expiration:      tea.StringValue(credentials.Expiration),
+	stsRespCredentials := response.Body.Credentials
+
+	expirationStr := tea.StringValue(stsRespCredentials.Expiration)
+	if expirationStr == "" {
+		zap.L().Error("Empty Expiration string from STS", zap.Error(err))
+		return credentials.Credentials{}, fmt.Errorf("STS response contained empty Expiration string")
+	}
+
+	expiresTime, parseErr := time.Parse(time.RFC3339, expirationStr)
+	if parseErr != nil {
+		zap.L().Error("Failed to parse expiration time from STS", zap.String("expiration", expirationStr), zap.Error(parseErr))
+		return credentials.Credentials{}, fmt.Errorf("failed to parse expiration time '%s': %w", expirationStr, parseErr)
+	}
+
+	return credentials.Credentials{
+		AccessKeyID:     tea.StringValue(stsRespCredentials.AccessKeyId),
+		AccessKeySecret: tea.StringValue(stsRespCredentials.AccessKeySecret),
+		SecurityToken:   tea.StringValue(stsRespCredentials.SecurityToken),
+		Expires:         &expiresTime,
 	}, nil
 }
 
-func GeneratePolicyAndSignature(accessKeyID, accessKeySecret, securityToken string) (string, string, error) {
-	expiration := time.Now().Add(30 * time.Minute).UTC().Format("2006-01-02T15:04:05.000Z")
-	policy := map[string]interface{}{
-		"expiration": expiration,
-		"conditions": []interface{}{
-			map[string]string{"bucket": "springboard"},
-			map[string]string{"x-oss-security-token": securityToken},
-		},
-	}
+func PresignPreviewUrl(objectkey string) (string, error) {
+	client := oss.NewClient(cfg)
 
-	policyJSON, err := json.Marshal(policy)
+	log.Println("[PresignPreview Url] objectkey: ", objectkey)
+
+	result, err := client.Presign(context.TODO(), &oss.GetObjectRequest{
+		Bucket: oss.Ptr(bucketName),
+		Key:    oss.Ptr(objectkey),
+	}, oss.PresignExpires(30*time.Minute))
+
 	if err != nil {
-		zap.L().Error("Failed to marshal policy", zap.Error(err))
-		return "", "", err
+		zap.L().Error("failed to get object presign: ", zap.Error(err))
+		return "", fmt.Errorf("failed to get object presign: %w", err)
 	}
-	base64Policy := base64.StdEncoding.EncodeToString(policyJSON)
 
-	mac := hmac.New(sha1.New, []byte(accessKeySecret))
-	mac.Write([]byte(base64Policy))
-	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-
-	return base64Policy, signature, nil
+	return result.URL, nil
 }
 
-func GenetrateDownloadSignedURL(creds Credentials, ossKey string) (string, error) {
+func PresignUploadUrl(objectkey string, contentType string) (string, error) {
+	client := oss.NewClient(cfg)
 
-	ossEndpoint := "https://oss-cn-shenzhen.aliyuncs.com"
+	result, err := client.Presign(context.TODO(), &oss.PutObjectRequest{
+		Bucket:      oss.Ptr(bucketName),
+		Key:         oss.Ptr(objectkey),
+		ContentType: oss.Ptr(contentType),
+	}, oss.PresignExpires(30*time.Minute))
 
-	client, err := oss.New(ossEndpoint, creds.AccessKeyId, creds.AccessKeySecret, oss.SecurityToken(creds.SecurityToken))
 	if err != nil {
-		return "", fmt.Errorf("创建 OSS 客户端失败: %v", err)
+		zap.L().Error("failed to put object presign: ", zap.Error(err))
+		return "", fmt.Errorf("failed to put object presign: %w", err)
 	}
 
-	bucketHandle, err := client.Bucket("springboard")
-	if err != nil {
-		return "", fmt.Errorf("获取 OSS Bucket 失败: %v", err)
+	if len(result.SignedHeaders) > 0 {
+		log.Printf("signed headers:\n")
+		for k, v := range result.SignedHeaders {
+			log.Printf("%v: %v\n", k, v)
+		}
 	}
 
-	signedURL, err := bucketHandle.SignURL(ossKey, oss.HTTPGet, 600)
-	if err != nil {
-		return "", fmt.Errorf("生成签名 URL 失败: %v", err)
-	}
-	return signedURL, nil
+	return result.URL, nil
 }
 
-func GenetratePreviewSignedURL(creds Credentials, ossKey string) (string, error) {
-
-	ossEndpoint := "https://oss-cn-shenzhen.aliyuncs.com"
-
-	client, err := oss.New(ossEndpoint, creds.AccessKeyId, creds.AccessKeySecret, oss.SecurityToken(creds.SecurityToken))
-	if err != nil {
-		return "", fmt.Errorf("创建 OSS 客户端失败: %v", err)
-	}
-
-	bucketHandle, err := client.Bucket("springboard")
-	if err != nil {
-		return "", fmt.Errorf("获取 OSS Bucket 失败: %v", err)
-	}
-
-	options := []oss.Option{
-		oss.ResponseContentDisposition("inline"),
-	}
-
-	signedURL, err := bucketHandle.SignURL(ossKey, oss.HTTPGet, 600, options...)
-	if err != nil {
-		return "", fmt.Errorf("生成签名 URL 失败: %v", err)
-	}
-	return signedURL, nil
+func GenerateUniqueKey(filename string) string {
+	timestamp := time.Now().Unix()
+	return fmt.Sprintf("uploads/%d_%s", timestamp, filename)
 }
