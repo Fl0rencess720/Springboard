@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Fl0rencess720/Springbroad/internal/conf"
-	"github.com/Fl0rencess720/Springbroad/internal/controller"
-	"github.com/Fl0rencess720/Springbroad/internal/data"
+	"github.com/Fl0rencess720/Springboard/internal/conf"
+	"github.com/Fl0rencess720/Springboard/internal/controller"
+	"github.com/Fl0rencess720/Springboard/internal/data"
 
-	"github.com/Fl0rencess720/Springbroad/api"
-	"github.com/Fl0rencess720/Springbroad/consts"
-	"github.com/Fl0rencess720/Springbroad/pkgs/logger"
+	"github.com/Fl0rencess720/Springboard/api"
+	"github.com/Fl0rencess720/Springboard/consts"
+	"github.com/Fl0rencess720/Springboard/pkgs/logger"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -37,7 +37,7 @@ func main() {
 }
 
 func newSrv() *http.Server {
-	authRepo := data.NewAuthRepo()
+	authRepo := data.NewAuthRepo(data.GetDB())
 	portfolioRepo := data.NewPortfolioRepo(data.GetDB(), data.GetRedis())
 	feedbackRepo := data.NewFeedbackRepo(data.GetDB())
 	authUsecase := controller.NewAuthUsecase(authRepo)

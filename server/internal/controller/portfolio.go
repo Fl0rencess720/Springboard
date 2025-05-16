@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 
-	"github.com/Fl0rencess720/Springbroad/internal/data"
+	"github.com/Fl0rencess720/Springboard/internal/data"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"

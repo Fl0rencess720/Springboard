@@ -26,7 +26,7 @@ jobs:
         key: ${{ secrets.TENCENT_CLOUD_SSH_KEY }}
         port: 22
         source: "."
-        target: "/home/ubuntu/springbroad"
+        target: "/home/ubuntu/springboard"
 
     - name: Deploy with Docker Compose
       uses: appleboy/ssh-action@v1
@@ -36,6 +36,6 @@ jobs:
         port: 22
         key: ${{ secrets.TENCENT_CLOUD_SSH_KEY }}
         script: |
-          cd /home/ubuntu/springbroad/server
+          cd /home/ubuntu/springboard/server
           sudo docker-compose down
           sudo docker-compose up -d --build

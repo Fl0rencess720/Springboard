@@ -1,23 +1,32 @@
 package controller
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
-	"github.com/Fl0rencess720/Springbroad/internal/middleware"
+	"github.com/Fl0rencess720/Springboard/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"github.com/thedevsaddam/gojsonq"
 )
 
 type AuthRepo interface {
+	RegisterAppUser(username, password string) error
+	VerifyLogin(username, password string) error
 }
 
 type AuthUsecase struct {
 	repo AuthRepo
+}
+
+type AppRegisterLoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func NewAuthUsecase(repo AuthRepo) *AuthUsecase {
@@ -56,6 +65,48 @@ func (s *AuthUsecase) Login(c *gin.Context) {
 	})
 }
 
+func (s *AuthUsecase) AppRegister(c *gin.Context) {
+	var req AppRegisterLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	accessToken, refreshToken, err := middleware.GenToken(req.Username)
+	if err != nil {
+		ErrorResponse(c, LoginError, err)
+		return
+	}
+	if err := s.repo.RegisterAppUser(req.Username, req.Password); err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	SuccessResponse(c, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
+}
+
+func (s *AuthUsecase) AppLogin(c *gin.Context) {
+	var req AppRegisterLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, ServerError, err)
+		return
+	}
+	accessToken, refreshToken, err := middleware.GenToken(req.Username)
+	if err != nil {
+		ErrorResponse(c, LoginError, err)
+		return
+	}
+	if err := s.repo.VerifyLogin(req.Username, req.Password); err != nil {
+		ErrorResponse(c, LoginError, err)
+		return
+	}
+	SuccessResponse(c, gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
+}
+
 func (s *AuthUsecase) RefreshAccessToken(c *gin.Context) {
 	refreshToken := c.Query("refresh_token")
 	tokenString := c.GetHeader("Authorization")
@@ -76,4 +127,9 @@ func (s *AuthUsecase) RefreshAccessToken(c *gin.Context) {
 	SuccessResponse(c, gin.H{
 		"access_token": accessToken,
 	})
+}
+
+func MD5(input string) string {
+	hash := md5.Sum([]byte(input))
+	return hex.EncodeToString(hash[:])
 }

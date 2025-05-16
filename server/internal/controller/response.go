@@ -11,6 +11,7 @@ const (
 	TokenExpired
 	LoginError
 	RefreshTokenError
+	RegisterError
 )
 
 var HttpCode = map[uint]int{
@@ -19,6 +20,7 @@ var HttpCode = map[uint]int{
 	TokenExpired:      401,
 	LoginError:        403,
 	RefreshTokenError: 403,
+	RegisterError:     403,
 }
 
 var Message = map[uint]string{
@@ -27,6 +29,7 @@ var Message = map[uint]string{
 	TokenExpired:      "Token过期",
 	LoginError:        "登录失败",
 	RefreshTokenError: "刷新Token失败",
+	RegisterError:     "注册失败",
 }
 
 func SuccessResponse(c *gin.Context, data any) {

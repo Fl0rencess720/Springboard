@@ -21,11 +21,11 @@ func Init() {
 }
 
 func mysqlInit() {
-	mysqlDB, err := gorm.Open(mysql.Open(fmt.Sprintf("%s:%s@tcp(%s)/springbroad?parseTime=True&loc=Local", viper.GetString("MYSQL_USER"), viper.GetString("MYSQL_PASSWORD"), viper.GetString("MYSQL_ADDR"))), &gorm.Config{})
+	mysqlDB, err := gorm.Open(mysql.Open(fmt.Sprintf("%s:%s@tcp(%s)/springboard?parseTime=True&loc=Local", viper.GetString("MYSQL_USER"), viper.GetString("MYSQL_PASSWORD"), viper.GetString("MYSQL_ADDR"))), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect mysql")
 	}
-	if err := mysqlDB.AutoMigrate(&Portfolio{}, &Work{}, &Feedback{}, &Page{}, &Template{}, &Text{}); err != nil {
+	if err := mysqlDB.AutoMigrate(&AppUser{}, &Portfolio{}, &Work{}, &Feedback{}, &Page{}, &Template{}, &Text{}); err != nil {
 		panic("failed to migrate mysql")
 	}
 	db = mysqlDB

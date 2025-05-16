@@ -1,7 +1,7 @@
 services:
-  springbroad_be:
+  springboard_be:
     build: .
-    container_name: springbroad_be
+    container_name: springboard_be
     restart: always
     ports:
       - "8000:8000"
@@ -24,17 +24,17 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik"
-      - "traefik.http.routers.springbroad_be-http.entrypoints=http"
-      - "traefik.http.routers.springbroad_be-http.middlewares=redir-https"
-      - "traefik.http.routers.springbroad_be.rule=Host(`springbroad.${DOMAIN}`)"
-      - "traefik.http.routers.springbroad_be-http.service=noop@internal"
-      - "traefik.http.routers.springbroad_be-https.entrypoints=https"
-      - "traefik.http.routers.springbroad_be-https.tls=true"
-      - "traefik.http.routers.springbroad_be-https.middlewares=gzip"
-      - "traefik.http.routers.springbroad_be-https.rule=Host(`springbroad.${DOMAIN}`)"
-      - "traefik.http.routers.springbroad_be-https.service=springbroad_be"
-      - "traefik.http.services.springbroad_be.loadbalancer.server.scheme=http"
-      - "traefik.http.services.springbroad_be.loadbalancer.server.port=8000"
+      - "traefik.http.routers.springboard_be-http.entrypoints=http"
+      - "traefik.http.routers.springboard_be-http.middlewares=redir-https"
+      - "traefik.http.routers.springboard_be.rule=Host(`springboard.${DOMAIN}`)"
+      - "traefik.http.routers.springboard_be-http.service=noop@internal"
+      - "traefik.http.routers.springboard_be-https.entrypoints=https"
+      - "traefik.http.routers.springboard_be-https.tls=true"
+      - "traefik.http.routers.springboard_be-https.middlewares=gzip"
+      - "traefik.http.routers.springboard_be-https.rule=Host(`springboard.${DOMAIN}`)"
+      - "traefik.http.routers.springboard_be-https.service=springboard_be"
+      - "traefik.http.services.springboard_be.loadbalancer.server.scheme=http"
+      - "traefik.http.services.springboard_be.loadbalancer.server.port=8000"
 
   redis:
     image: redis:latest
@@ -62,7 +62,7 @@ services:
       - .env
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: springbroad
+      MYSQL_DATABASE: springboard
       TZ: Asia/Shanghai
     volumes:
       - /home/ubuntu/mysql/data:/var/lib/mysql
