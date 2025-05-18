@@ -16,7 +16,6 @@ type Portfolio struct {
 	Openid      string    `gorm:"index;type:varchar(255)" json:"openid"`
 	Title       string    `gorm:"type:varchar(255)" json:"title"`
 	Projects    []Project `gorm:"foreignKey:PortfolioUID;references:UID" json:"projects"`
-	Texts       []Text    `gorm:"foreignKey:PortfolioUID;references:UID" json:"texts"`
 	TemplateUID string    `gorm:"index;type:varchar(255)" json:"template_uid"`
 	Template    Template  `gorm:"foreignKey:TemplateUID;references:UID" json:"template"`
 	CreatedAt   time.Time
@@ -27,22 +26,25 @@ type Work struct {
 	OSSKey     string `gorm:"unique;index;type:varchar(255)" json:"oss_key"`
 	ProjectUID string `gorm:"type:varchar(255)" json:"project_uid"`
 	// Size 格式为 axb 例如 1920x1080
-	Size       string `gorm:"type:varchar(255)" json:"size"`
-	MarginTop  string `gorm:"type:varchar(255)" json:"margin_top"`
-	MarginLeft string `gorm:"type:varchar(255)" json:"margin_left"`
-	Page       int    `gorm:"type:int" json:"page"`
+	Size       string  `gorm:"type:varchar(255)" json:"size"`
+	MarginTop  string  `gorm:"type:varchar(255)" json:"margin_top"`
+	MarginLeft string  `gorm:"type:varchar(255)" json:"margin_left"`
+	Scale      float64 `gorm:"type:double;default:1.0" json:"scale"` // 1.0 表示 不缩放
+	PageNum    int     `gorm:"column:page;type:int" json:"page_num"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 type Text struct {
-	ID           uint   `gorm:"primarykey"`
-	Content      string `gorm:"type:varchar(255)" json:"content"`
-	FontSize     string `gorm:"type:varchar(255)" json:"font_size"`
-	Size         string `gorm:"type:varchar(255)" json:"size"`
-	MarginTop    string `gorm:"type:varchar(255)" json:"margin_top"`
-	MarginLeft   string `gorm:"type:varchar(255)" json:"margin_left"`
-	Page         int    `gorm:"type:int" json:"page"`
-	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
+	ID         uint   `gorm:"primarykey"`
+	UID        string `gorm:"unique;index;type:varchar(255)" json:"uid"`
+	ProjectUID string `gorm:"type:varchar(255)" json:"project_uid"`
+	Content    string `gorm:"type:varchar(255)" json:"content"`
+	FontSize   string `gorm:"type:varchar(255)" json:"font_size"`
+	FontColor  string `gorm:"type:char(6);default:'000000'" json:"font_color"`
+	Size       string `gorm:"type:varchar(255)" json:"size"` // 文本框大小
+	MarginTop  string `gorm:"type:varchar(255)" json:"margin_top"`
+	MarginLeft string `gorm:"type:varchar(255)" json:"margin_left"`
+	PageNum    int    `gorm:"column:page;type:int" json:"page_num"`
 }
 type Template struct {
 	ID         uint   `gorm:"primarykey"`
@@ -54,6 +56,8 @@ type Template struct {
 }
 
 // 模板中的固有页面
+// oss key 格式：template_5_4.svg，其中5为模板id，4为页面在模板中的顺序
+// margin, size表示矩形空位，用于放 work 的位置
 type Page struct {
 	ID            uint   `gorm:"primarykey"`
 	UID           string `gorm:"unique;index;type:varchar(255)" json:"uid"`
@@ -64,7 +68,8 @@ type Page struct {
 	TemplateUID   string   `gorm:"type:varchar(255)" json:"template_uid"`
 	MarginTop     string   `gorm:"type:varchar(255)" json:"margin_top"`
 	MarginLeft    string   `gorm:"type:varchar(255)" json:"margin_left"`
-	Size          string   `gorm:"type:varchar(255)" json:"size"`
+	Size          string   `gorm:"type:varchar(255)" json:"size"`     // 图片容纳框大小
+	BkgSize       string   `gorm:"type:varchar(255)" json:"bkg_size"` // 背景图大小
 	IsContentPage bool     `gorm:"type:bool" json:"is_content_page"`
 }
 type Project struct {
@@ -74,6 +79,7 @@ type Project struct {
 	Order        int    `gorm:"type:int" json:"order"`
 	PortfolioUID string `gorm:"type:varchar(255)" json:"portfolio_uid"`
 	Works        []Work `gorm:"foreignKey:ProjectUID;references:UID" json:"works"`
+	Texts        []Text `gorm:"foreignKey:ProjectUID;references:UID" json:"texts"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -215,6 +221,13 @@ func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfoli
 			works = append(works, work)
 		}
 	}
+	texts := []Text{}
+	for _, project := range projects {
+		for _, text := range project.Texts {
+			text.ProjectUID = project.UID
+			texts = append(texts, text)
+		}
+	}
 	err := r.mysqlDB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "uid"}},
@@ -228,11 +241,22 @@ func (r PortfolioRepo) SavePortfolioToDB(ctx context.Context, portfolio Portfoli
 		}).Create(&projects).Error; err != nil {
 			return err
 		}
-		if err := tx.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "oss_key"}},
-			UpdateAll: true,
-		}).Create(&works).Error; err != nil {
-			return err
+
+		if len(works) > 0 {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "oss_key"}},
+				UpdateAll: true,
+			}).Create(&works).Error; err != nil {
+				return err
+			}
+		}
+		if len(texts) > 0 {
+			if err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "uid"}},
+				UpdateAll: true,
+			}).Create(&texts).Error; err != nil {
+				return err
+			}
 		}
 		return nil
 	})
