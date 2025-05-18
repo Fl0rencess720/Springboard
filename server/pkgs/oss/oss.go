@@ -3,7 +3,6 @@ package oss
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -91,16 +90,14 @@ func GenerateAssumeRoleCredential(ctx context.Context) (credentials.Credentials,
 func PresignPreviewUrl(objectkey string) (string, error) {
 	client := oss.NewClient(cfg)
 
-	log.Println("[PresignPreview Url] objectkey: ", objectkey)
-
 	result, err := client.Presign(context.TODO(), &oss.GetObjectRequest{
 		Bucket: oss.Ptr(bucketName),
 		Key:    oss.Ptr(objectkey),
 	}, oss.PresignExpires(30*time.Minute))
 
 	if err != nil {
-		zap.L().Error("failed to get object presign: ", zap.Error(err))
-		return "", fmt.Errorf("failed to get object presign: %w", err)
+		zap.L().Error("failed to get object "+objectkey+" presign: %w", zap.Error(err))
+		return "", fmt.Errorf("failed to get object %s presign: %w", objectkey, err)
 	}
 
 	return result.URL, nil
@@ -118,13 +115,6 @@ func PresignUploadUrl(objectkey string, contentType string) (string, error) {
 	if err != nil {
 		zap.L().Error("failed to put object presign: ", zap.Error(err))
 		return "", fmt.Errorf("failed to put object presign: %w", err)
-	}
-
-	if len(result.SignedHeaders) > 0 {
-		log.Printf("signed headers:\n")
-		for k, v := range result.SignedHeaders {
-			log.Printf("%v: %v\n", k, v)
-		}
 	}
 
 	return result.URL, nil
